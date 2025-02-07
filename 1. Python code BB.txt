@@ -1,0 +1,855 @@
+
+
+import pandas as pd
+import numpy as np
+import glob
+
+pd.set_option('display.max_columns', None)
+pd.set_option('display.max_rows', None)
+
+#define functions to format data files
+
+#Functions to put date columns in files into date format depending on file format
+#this works for the clinical and referral data files
+
+def formatdate(data):
+    data['sysdate'] = data['sysdate'].str.replace('/', '')
+    data['sysdate']= pd.to_datetime(data['sysdate'], format='%d%m%Y')
+    data['eventdate']= data['eventdate'].str.replace('/', '')
+    data['eventdate'] = pd.to_datetime(data['eventdate'], format='%d%m%Y')
+    return data
+
+#this works for the ent files from additional data
+
+def formatdateent(data):
+    data['eventdate']= data['eventdate'].str.replace('/', '')
+    data['eventdate'] = pd.to_datetime(data['eventdate'], format='%d%m%Y')
+    return data
+
+# this works for the hospital diagnosis files
+def formatdatehosp(data):
+    data['epiend']=data['epiend'].str.replace('/', '')
+    data['epiend']=pd.to_datetime(data['epiend'], format='%d%m%Y')
+    data['epistart']=data['epistart'].str.replace('/', '')
+    data['epistart']=pd.to_datetime(data['epistart'], format='%d%m%Y')
+    return data
+    
+
+#function to sort by patientid and date 
+#works for the clinical data files format with eventdate, also for the consultation files
+def sort_id_date_clin(data):
+    data.sort_values(by = ['e_patid', 'eventdate'], inplace=True)
+    return data
+
+#works for the hospital diagnosis files
+#sorts by date of episode end
+def sort_id_date_hosp(data):
+    data.sort_values(by = ['e_patid', 'epiend'], inplace=True)
+    return data
+
+
+
+#function to sort by patient id and reverse order date and add a sequence number
+#this means when a sequence number is added to these files 1 will be the most recent occurrence
+#this function works for clinical data file format
+#substitute epiend for event date to get function that works for hospital episode data
+#def revsortnumber(data):
+#    data = data.sort_values(by =['e_patid', 'eventdate'], ascending=[True, False], inplace=True)
+#    return data
+
+def revsortnumber(data):
+    data = data.sort_values(by =['e_patid', 'eventdate'], ascending=[True, False])
+    return data
+
+#function to add a sequence number by date within patient id in the sorted files
+#in these files earliest occurrence can by picked out by selecting seq_number=1
+#called revseq when adds revseq_number so can tell is in reverse order
+def addseq(data):
+    data['seq_number'] = data.groupby(['e_patid']).cumcount()+1
+    return data
+
+def revseq(data):
+    data['revseq_number'] = data.groupby(['e_patid']).cumcount()+1
+    return data
+
+
+
+#function to make wide file where sequence is most recent = 1
+
+def longtowiderev(data):
+    data = data.pivot_table(index=["e_patid"], columns=["revseq_number"], values=["eventdate"])
+    return data
+
+#function to make wide file where sequence is first occurence = 1
+
+def longtowide(data):
+    data = data.pivot_table(index=["e_patid"], columns=["seq_number"], values=["eventdate"])
+    return data
+
+#function to rename columns in wide file
+
+def renamecols(data):
+    data = data.reset_index()
+    return data
+    
+
+#read in and merge all the clinical files
+
+path = "Z:/CPRD data/Downloads/19_050 Files for analysis/Data/Primary Care/CPRD GOLD/" # define path to directory where data files are
+
+clinical_files = glob.glob(path + "*clinical*.txt") # make a list of all files in the directory with "clinical" in filename
+
+#read  all the clinical files in and add to a list
+clinical_list = []
+for filename in clinical_files:    
+    df = pd.read_csv(filename, sep="\t")
+    df = formatdate(df)
+    clinical_list.append(df)
+
+clinical_merged = pd.concat(clinical_list, axis=0) # merge all the clinical files together
+
+#read in and merge all the additional files in the same way
+
+additional_files = glob.glob(path + "*additional*.txt")
+
+additional_list = []
+for filename in additional_files:
+    df = pd.read_csv(filename, sep="\t")
+    additional_list.append(df)
+
+additional_merged = pd.concat(additional_list, axis=0)
+
+#read in and merge the referral files
+
+referral_files = glob.glob(path + "*referral*.txt")
+
+referral_li = []
+for filename in referral_files:
+    df = pd.read_csv(filename, sep="\t")
+    df = formatdate(df)
+    referral_li.append(df)
+
+referral_merged = pd.concat(referral_li, axis=0)
+
+#read in and merge all the test files
+
+test_files = glob.glob(path + "*test*.txt")
+
+test_list = []
+for filename in test_files:
+    df = pd.read_csv(filename, sep="\t", dtype = ({'data8':'str'}))
+    df = formatdate(df)
+    test_list.append(df)
+
+test_merged = pd.concat(test_list, axis=0)
+
+#read  in and merge all the therapy files selecting relevant columns
+
+therapy_files = glob.glob(path + "*therapy*.txt")
+
+therapy_list = []
+for filename in therapy_files:
+    df = pd.read_csv(filename, sep="\t",  usecols=(['e_patid', 'eventdate', 'prodcode', 'bnfcode']), dtype=({'bnfcode':'str'}))
+    df = formatdateent(df)
+    therapy_list.append(df)
+
+therapy_merged = pd.concat(therapy_list, axis=0) # merge all the clinical files together
+
+
+#read in the patient data and format the date columns
+
+patient = pd.read_csv("Z:/CPRD data/Downloads/19_050 Files for analysis/Data/Primary Care/CPRD GOLD/19_050_gold_extract_patient_001.txt", sep="\t")
+patient['frd']= patient['frd'].str.replace('/', '')
+patient['frd'] = pd.to_datetime(patient['frd'], format='%d%m%Y')
+patient['crd']= patient['crd'].str.replace('/', '')
+patient['crd'] = pd.to_datetime(patient['crd'], format='%d%m%Y')
+patient['tod']= patient['tod'].str.replace('/', '')
+patient['tod'] = pd.to_datetime(patient['tod'], format='%d%m%Y')
+
+#drop the duplicate values for e_patid in the patient file
+patient = patient.drop_duplicates(subset='e_patid', keep=False)
+
+#read in the practice data - need to format the date columns lcd and uts
+
+practice = pd.read_csv("Z:/CPRD data/Downloads/19_050 Files for analysis/Data/Primary Care/CPRD GOLD/19_050_gold_extract_practice_001.txt", sep="\t")
+practice['lcd']= practice['lcd'].str.replace('/', '')
+practice['lcd'] = pd.to_datetime(practice['lcd'], format='%d%m%Y')
+practice['uts']= practice['uts'].str.replace('/', '')
+practice['uts'] = pd.to_datetime(practice['uts'], format='%d%m%Y')
+
+#read in the cohort data
+cohort = pd.read_csv("Z:/CPRD data/Downloads/19_050 Files for analysis/Data/Primary Care/CPRD GOLD/19_050_gold_cohort.txt", sep="\t")
+
+#drop the duplicate values for e_patid in the cohort file
+cohort = cohort.drop_duplicates(subset='e_patid', keep=False)
+
+
+#read in deathdate from linked data - NEEDED
+deathdata = pd.read_csv("Z:/CPRD data/Downloads/19_050 Files for analysis/Data/Linked Data/gold_death_patient_19_050.txt",  sep="\t", usecols =(['e_patid', 'dod', 'dod_partial']),  dtype = ({'dod_partial':'str'}))
+deathdata['dod']= deathdata['dod'].str.replace('/', '')
+deathdata['dod'] = pd.to_datetime(deathdata['dod'], format='%d%m%Y')
+
+#read in the practice imd data
+imd = pd.read_csv("Z:/CPRD data/Downloads/19_050 Files for analysis/Data/Linked Data/gold_practice_imd_19_050.txt",  sep="\t")
+
+
+#ADD path to dementia diagnosis codes
+dementia_medcodes = list(pd.read_excel("Z:/Bria/Code lists/dementia medcodes.xls")['medcode'])
+
+
+##find patientids with dementia medcodes
+#NEED TO EDIT THIS TO USE YOUR LIST OF DEMENTIA MEDCODES
+clinical_dementia = clinical_merged[clinical_merged.medcode.isin(dementia_medcodes)].copy(deep=True)
+
+
+
+#read in patients with dementia medication prescriptions#
+dementia_medication = list(pd.read_excel("Z:/Bria/Code lists/Dementia medication codes.xlsx")['prodcode'])
+
+#find patients with prescribed dementia medication codes#
+prescribed_dementia = therapy_merged[therapy_merged.prodcode.isin(dementia_medication)].copy(deep=True)
+
+
+######combine dementia diagnosis code pts with dementia medication code pts#
+diag_meds_dementia = pd.concat([clinical_dementia[['e_patid', 'eventdate', 'constype', 'medcode', 'episode']], prescribed_dementia[['e_patid', 'eventdate', 'prodcode']]])
+
+
+#EDIT THIS TO GET FIRST DEMENTIA CODE
+#same steps to get date of first dementia code in clinical files
+clinical_dementia = sort_id_date_clin(clinical_dementia)
+clinical_dementia = addseq(clinical_dementia)
+first1_dementia = clinical_dementia[clinical_dementia['seq_number']==1].copy(deep=True)
+#rename eventdate to first1 and drop all columns except this and patientid EDIT FOR DEMENTIA
+first1_dementia.rename(columns={'eventdate':'first1_dementia'}, inplace=True)
+first1_dementia = first1_dementia[['e_patid', 'first1_dementia', 'medcode']].copy(deep=True) 
+
+
+#same steps to get date of first dementia medication code in therapy files#
+prescribed_dementia = sort_id_date_clin(prescribed_dementia)
+prescribed_dementia = addseq(prescribed_dementia)
+first1_dem_med = prescribed_dementia[prescribed_dementia['seq_number']==1].copy(deep=True)
+#rename eventdate to first1 and drop all columns except this and patientid EDIT FOR DEMENTIA
+first1_dem_med.rename(columns={'eventdate':'first1_dem_med'}, inplace=True)
+first1_dem_med = first1_dem_med[['e_patid', 'first1_dem_med']].copy(deep=True)
+
+
+#merge these 2 files to find first diagnosis date 
+from functools import reduce
+dfs = [first1_dementia, first1_dem_med] # MAKE A LIST OF THE FILES TO MERGE
+
+
+all_dem_diag = reduce(lambda  left,right: pd.merge(left,right,on=['e_patid'],
+                                            how='outer'), dfs) # THIS DOES AN OUTER MERGE OF FILES IN THE DFS LIST ON E_PATID
+all_dem_diag['first_dem_diag'] = all_dem_diag[['first1_dementia', 'first1_dem_med']].min(axis=1)
+
+
+#merge in the patient data and calculate age
+#select only those cases where patient data is acceptable and age is in realistic range (65 and over)
+all_dem_diag = pd.merge(all_dem_diag, patient[['e_patid', 'gender', 'crd', 'tod', 'yob', 'deathdate', 'accept']], how="left", on="e_patid") 
+all_dem_diag = pd.merge(all_dem_diag, deathdata[['e_patid', 'dod']], how="left", on="e_patid")
+#create a merged death date variable. Uses ONS data if avaiable, but cprd data if ons data is missing
+all_dem_diag['dod'].fillna(all_dem_diag['deathdate'], inplace=True)
+
+all_dem_diag = all_dem_diag[all_dem_diag.accept==1] # this just selects patients with acceptable data
+all_dem_diag['diag_year'] = pd.DatetimeIndex(all_dem_diag['first_dem_diag']).year #create variable for year at diagnosis
+all_dem_diag['age_at_diag'] = all_dem_diag.diag_year - all_dem_diag.yob
+all_dem_diag = all_dem_diag[(all_dem_diag.age_at_diag>=65)] # select an age range for sensible age at diagnosis
+
+
+
+# merge in e_pracid from the cohort file
+all_dem_diag = pd.merge(all_dem_diag, cohort[['e_patid', 'e_pracid']], how="left", on="e_patid")
+
+#merge in uts and region data from practice file #EDIT TO KEEP VARIABLES YOU ARE INTERESTED IN 
+all_dem_diag = pd.merge(all_dem_diag, practice[['e_pracid', 'region', 'uts', 'lcd']], how="left", on='e_pracid')
+
+#merge in imd data from imd file
+all_dem_diag = pd.merge(all_dem_diag, imd[['e_pracid', 'e2015_imd_5']], how="left", on="e_pracid")
+
+
+#create markers 1 month before diagnosis date in all_dem_diag
+from datetime import timedelta, datetime
+
+all_dem_diag["diag_minus1m"] = all_dem_diag["first_dem_diag"] - timedelta(days = 30)
+all_dem_diag["diag_minus12m"] = all_dem_diag["first_dem_diag"] - timedelta(days = 365)
+
+
+# select only cases where uts date is at least one year before diagnosis date
+all_dem_diag = all_dem_diag[all_dem_diag.diag_minus12m >= all_dem_diag.uts].copy(deep=True)
+
+#select only cases with at least one month of data before dementia diagnosis data
+#have taken this to be cases where current registratoin date (crd) i at least one month before diagnosis date
+all_dem_diag = all_dem_diag[all_dem_diag.diag_minus1m >= all_dem_diag.crd].copy(deep=True)
+
+#read in HES linkage data
+hospitalisations = pd.read_csv("Z:/CPRD data/Downloads/19_050 Files for analysis/Data/Linked Data/gold_hes_hospital_19_050_dm.txt",sep="\t")
+
+
+#format date 
+hospitalisations2 = hospitalisations[['e_patid', 'admidate', 'discharged']].copy(deep=True) # only need to keep these three variables
+hospitalisations2['admidate']= hospitalisations2['admidate']. str.replace('/', '')
+hospitalisations2['admidate']= pd.to_datetime(hospitalisations2['admidate'] , format='%d%m%Y')
+hospitalisations2['discharged']= hospitalisations2['discharged']. str.replace('/', '')
+hospitalisations2['discharged']= pd.to_datetime(hospitalisations2['discharged'] , format='%d%m%Y')
+
+#merge in the dementia diagnosis date
+hospitalisations2 = pd.merge(hospitalisations2, all_dem_diag[['e_patid', 'first_dem_diag']], how="left", on='e_patid')
+
+
+#filter data to only pts with admmission dates post diagnosis
+hospitalisations2 = hospitalisations2[hospitalisations2.admidate >= hospitalisations2.first_dem_diag].copy(deep=True)
+
+# sort by patient id and date
+
+hospitalisations2 = hospitalisations2.sort_values(by=['e_patid', 'admidate'])
+
+#Add a sequence number and select the first and second admissions post diagnosis
+hospitalisations2 = addseq(hospitalisations2)
+hospitalisations2 = hospitalisations2[hospitalisations2.seq_number < 3].copy(deep=True)
+
+#get number of days between consecutive admissions and create flag if less than 180 days"
+hospitalisations2['DaysBetween'] = hospitalisations2.groupby('e_patid')['admidate'].diff().dt.days
+hospitalisations2['Readmission'] = hospitalisations2['DaysBetween'].lt(180).astype(int)
+
+#drop the second admission row if not within 180 days
+hospitalisations2['dropvar'] = np.logical_and(hospitalisations2.seq_number==2, hospitalisations2.Readmission==0)
+hospitalisations2 = hospitalisations2[hospitalisations2.dropvar == False].copy(deep=True)
+
+#drop variables
+hospitalisations3 = hospitalisations2.drop(columns=['first_dem_diag', 'seq_number', 'DaysBetween', 'dropvar'])
+
+
+#make a flat file with one row per patientid and dates of index admission and readmission as separate columns
+Readmit_wide = hospitalisations2.pivot_table(index=["e_patid"], columns=["Readmission"], values=["admidate", "discharged"])
+
+#the next section renames the variables to admidate_0  and admidate_1 also for discharge date
+def renamecols(data):
+    data.columns = ["_".join((str(i),str(j))) for i,j in data.columns]
+    data = data.reset_index()
+    return data
+
+Readmit_wide = renamecols(Readmit_wide)
+
+
+
+#NOW MERGE THE VALUES FROM READMIT_WIDE BACK INTO ALL_DEM_DIAG
+
+all_dem_diag = pd.merge(all_dem_diag, Readmit_wide, how="left", on="e_patid")
+
+#Remove rows with missing values in admidate_0 as these don't have any hospital admissions
+all_dem_diag.dropna(subset=['admidate_0'], inplace=True)
+
+
+
+all_dem_diag.head(5)
+
+#recode gender where 0=male and 1=female
+all_dem_diag['gender'] = all_dem_diag['gender'].replace({1:0, 2:1})
+
+
+#carefully reorder columns in all_dem_diag
+column_order = ['e_patid', 'gender', 'accept', 'first_dem_diag', 'diag_minus1m', 'diag_minus12m', 'yob', 'diag_year', 'age_at_diag', 'dod', 
+                'deathdate', 'e_pracid', 'crd', 'uts', 'tod', 'region', 'lcd', 'e2015_imd_5', 'admidate_0', 'discharged_0', 'admidate_1']
+
+all_dem_diag = all_dem_diag[column_order]
+
+
+
+
+
+all_dem_diag['index_adm_year'] = pd.DatetimeIndex(all_dem_diag['admidate_0']).year #create variable for year of index admission
+all_dem_diag['years_to_adm'] = all_dem_diag.index_adm_year - all_dem_diag.diag_year #calculate years between diagnosis and index admission
+
+
+
+
+
+#ETHNICITY#
+
+ethnicity_codes = pd.read_csv("Z:/CPRD data/Downloads/19_050 Files for analysis/Data/Linked Data/gold_hes_patient_19_050_dm.txt",sep="\t")
+ethnicity_codes = ethnicity_codes[['e_patid', 'gen_ethnicity']]
+
+all_dem_diag = pd.merge(all_dem_diag, ethnicity_codes, how="left", on="e_patid")
+
+
+#Ethnicity counts#
+
+ethnicity_counts = all_dem_diag['gen_ethnicity'].value_counts().reset_index()
+
+ethnicity_counts.columns = ['gen_ethnicity', 'patient_count']
+
+print(ethnicity_counts)
+
+
+#EDIT TO SELECT DEMENTIA PATIENTS
+#function to select only patients with a dementia from the other merged files
+
+def select_DEM(df):
+    df = df[df['e_patid'].isin(list(all_dem_diag['e_patid']))]
+    df = df.copy(deep=True)
+    return df
+
+#select only the patients with dementia from the other merged files
+clinical_merged = select_DEM(clinical_merged)
+referral_merged = select_DEM(referral_merged)
+additional_merged = select_DEM(additional_merged)
+therapy_merged = select_DEM(therapy_merged)
+
+
+dataframe_dupes = all_dem_diag[all_dem_diag.duplicated()]
+
+
+
+
+#DEMENTIA TYPE
+#Read in dementia type codes and specify the columns 'medcode' and 'type'
+demtype_codes = pd.read_excel("Z:/Bria/Code lists/dementia types.xlsx")
+demtype_codes = demtype_codes[['medcode', 'type']]
+
+#Merge dementia types with the clinical file
+demtypes = clinical_merged[clinical_merged.medcode.isin(demtype_codes.medcode)].copy(deep=True)
+demtypes = pd.merge(demtypes, demtype_codes, how='left') #add dementia type category variable
+
+#Merge dementia type with all_dem_diag, where the dementia type date = date of first dementia diagnosis column (first_dem_diag)
+demtypes = pd.merge(demtypes, all_dem_diag[['e_patid', 'first_dem_diag']], how="left", on="e_patid").copy(deep=True)
+demtypes = demtypes[demtypes["eventdate"] == demtypes["first_dem_diag"]].copy(deep=True)
+
+
+#check for demtype duplicates
+duplicates = demtypes[demtypes.duplicated()]
+
+demtypes = demtypes.drop_duplicates()
+
+#merge demtypes to all_dem_diag
+all_dem_diag = pd.merge(all_dem_diag, demtypes[['e_patid', 'type']], on='e_patid', how='left')
+
+#check and remove duplicates
+dataframe_dupes = all_dem_diag[all_dem_diag.duplicated()]
+
+all_dem_diag = all_dem_diag.drop_duplicates()
+
+
+
+#BMI
+#import codelist for bmi
+bmi_codes = pd.read_excel("Z:/Bria/Code lists/weight codes.xls")
+bmi_codes = bmi_codes[['medcode', 'category']]
+
+#merge dementia diagnosis date into the bmi files and select only data equal to or more than 1m before the diagnosis date
+
+bmi_clin = clinical_merged[clinical_merged.medcode.isin(bmi_codes.medcode)].copy(deep=True) #select the rows of the clinical file with a bmi medcode
+bmi_clin = pd.merge(bmi_clin, bmi_codes, how='left') # add bmi category variable
+
+#merge in date 1m before diagnosis and select only rows with eventdate equal to or prior to this.
+bmi_clin = pd.merge(bmi_clin, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+bmi_clin = bmi_clin[bmi_clin["eventdate"] <= bmi_clin["diag_minus1m"]].copy(deep=True)
+
+#look at additional file for info relevant to weight
+weight_ent = additional_merged[additional_merged.enttype ==13]
+weight_ent = weight_ent.drop(['enttype', 'data4', 'data5', 'data6', 'data7'], axis=1) # delete irrelevant columns
+weight_ent.rename(columns= {'data1':'weight_kg', 'data2':'weight_centile', 'data3':'bmi'}, inplace = True) # rename columns
+
+
+height_ent = additional_merged[additional_merged.enttype ==14]
+height_ent = height_ent.drop(['enttype','data3', 'data4', 'data5', 'data6', 'data7'], axis=1) # delete irrelevant columns
+height_ent.rename(columns= {'data1':'height_m', 'data2':'height_centile'}, inplace = True) # rename columns
+
+#add event date from clinical files to the height and weight additional data 
+# by mergin on e_patid and adid and drop weight and height centile
+
+weight_ent_plus_date = pd.merge(weight_ent[['e_patid', 'adid', 'weight_kg', 'bmi']], clinical_merged[['e_patid', 'adid', 'eventdate']], 
+                                   on = ['e_patid', 'adid'], how = 'left').copy(deep=True)
+height_ent_plus_date = pd.merge(height_ent[['e_patid', 'adid', 'height_m']], clinical_merged[['e_patid', 'adid', 'eventdate']], 
+                                   on = ['e_patid', 'adid'], how = 'left').copy(deep=True)
+
+#change data type of weight, height and bmi variable to numeric
+weight_ent_plus_date.weight_kg = pd.to_numeric(weight_ent_plus_date.weight_kg)
+weight_ent_plus_date.bmi = pd.to_numeric(weight_ent_plus_date.bmi)
+height_ent_plus_date.height_m = pd.to_numeric(height_ent_plus_date.height_m)
+
+#nake separate files for bmi and for cases where weight present but bmi missing or unrealistic values
+#recode bmi values over 100 or under 12 as missng, and weight values of <10 as missing
+
+weight_ent_plus_date.bmi.mask((weight_ent_plus_date.bmi > 100) | (weight_ent_plus_date.bmi < 12), inplace=True)
+weight_ent_plus_date.weight_kg.mask((weight_ent_plus_date.weight_kg < 10), inplace=True)
+weight_ent_no_bmi = weight_ent_plus_date[pd.isna(weight_ent_plus_date.bmi) & pd.notna(weight_ent_plus_date.weight_kg)] #file with weight but no bmi
+bmi_ent = weight_ent_plus_date[pd.notna(weight_ent_plus_date.bmi)] #make bmi_ent file and drop the rows with a missing bmi value
+
+
+#merge dementia diagnosis date into the height and weight additional files and select only data equal to or more than 1m before the diagnosis date
+bmi_ent = pd.merge(bmi_ent, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+bmi_ent = bmi_ent[bmi_ent["eventdate"] <= bmi_ent["diag_minus1m"]].copy(deep=True)
+height_ent_plus_date = pd.merge(height_ent_plus_date, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+height_ent_plus_date = height_ent_plus_date[height_ent_plus_date["eventdate"] <= height_ent_plus_date["diag_minus1m"]].copy(deep=True)
+weight_ent_no_bmi = pd.merge(weight_ent_no_bmi, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+weight_ent_no_bmi = weight_ent_no_bmi[weight_ent_no_bmi["eventdate"] <= weight_ent_no_bmi["diag_minus1m"]].copy(deep=True)
+
+#sort all weight and bmi files by patient id and date and number
+bmi_ent = revsortnumber(bmi_ent)
+bmi_ent = revseq(bmi_ent)
+height_ent_plus_date = revsortnumber(height_ent_plus_date)
+height_ent_plus_date = revseq(height_ent_plus_date)
+weight_ent_no_bmi = revsortnumber(weight_ent_no_bmi)
+weight_ent_no_bmi = revseq(weight_ent_no_bmi)
+bmi_clin = revsortnumber(bmi_clin)
+bmi_clin = revseq(bmi_clin)
+
+#select only relevant columns and most recent occurence at least 1m before diagnosis
+bmi_ent = bmi_ent[bmi_ent.revseq_number==1][["e_patid", "bmi", "eventdate"]].copy(deep=True)
+height_ent_plus_date = height_ent_plus_date[height_ent_plus_date.revseq_number==1][["e_patid", "height_m", "eventdate"]].copy(deep=True)
+weight_ent_no_bmi = weight_ent_no_bmi[weight_ent_no_bmi.revseq_number==1][["e_patid", "weight_kg", "eventdate"]].copy(deep=True)
+bmi_clin = bmi_clin[bmi_clin.revseq_number==1][["e_patid", "category", "eventdate"]].copy(deep=True)
+
+#rename eventdate column in each file and merge to find the most recent measurement
+bmi_ent.rename(columns= {'eventdate':'bmi_ent_date'}, inplace = True) 
+height_ent_plus_date.rename(columns= {'eventdate':'ht_ent_date'}, inplace = True) 
+weight_ent_no_bmi.rename(columns= {'eventdate':'wt_ent_date'}, inplace = True)
+bmi_clin.rename(columns= {'eventdate':'bmi_cat_date'}, inplace = True)
+
+#merge all files with height and weight data
+
+#create a list of files to merge with dementia diagnosis file 
+dfswt = [bmi_ent, height_ent_plus_date, weight_ent_no_bmi, bmi_clin]
+all_weight_data = reduce(lambda left,right: pd.merge(left, right, on=["e_patid"], how="outer"), dfswt) #merge all into one file keeping all rows
+all_weight_data["bmi_calc"] = all_weight_data.weight_kg/(all_weight_data.height_m**2) #calculate bmi from height and weight data
+all_weight_data.bmi_calc.mask((all_weight_data.bmi_calc > 100) | (all_weight_data.bmi_calc < 12), inplace=True) #recode calculate bmi values > 100 
+                                                                                                                #or <12 to missing
+all_weight_data['latest_wt'] = all_weight_data[['bmi_ent_date', 'wt_ent_date', 'bmi_cat_date']].max(axis=1) #find date of most recent wt/bmi
+
+                                                                                                
+#recode bmi and bmi_calc into categories
+
+all_weight_data['bmi_to_cat'] = pd.cut(all_weight_data.bmi, bins=[0, 18.5, 25, 30, 100], labels=['Underweight', 'Healthy weight', 'Overweight', 'Obese'])
+all_weight_data['bmi_calc_to_cat'] = pd.cut(all_weight_data.bmi_calc, bins=[0, 18.5, 25, 30, 100], labels=['Underweight', 'Healthy weight', 'Overweight', 'Obese'])
+
+
+#function to find the most recent bmi information
+def bmi_status_1m(df):
+    global recent_bmi 
+    recent_bmi = None
+    if(df['bmi_ent_date'] == df['latest_wt']):
+        recent_bmi = df['bmi_to_cat']          
+    elif(df['wt_ent_date']== df['latest_wt']):
+        recent_bmi == df['bmi_calc_to_cat']
+    elif(df['bmi_cat_date'] == df['latest_wt']):
+        recent_bmi = df['category']
+    return recent_bmi
+
+all_weight_data["bmi_status"]= all_weight_data.apply(bmi_status_1m, axis=1)  
+#drop all cols except final category and associated date
+all_weight_data = all_weight_data[['e_patid', 'latest_wt', 'bmi_status']]
+
+#merge this with the all_dem_diag file
+all_dem_diag = pd.merge(all_dem_diag, all_weight_data[['e_patid', 'bmi_status']], on='e_patid', how='left')
+
+all_weight_data.head(5)
+all_dem_diag.head(5)
+
+
+#primary care appts#
+#read in consultation files
+consultation_files = glob.glob(path + "*consultation*.txt")
+
+
+consultation_list = []
+for filename in consultation_files:
+    df = pd.read_csv(filename, sep="\t")
+    df = formatdate(df)
+    consultation_list.append(df)
+
+consultation_merged = pd.concat(consultation_list, axis=0)   
+
+#select patients with dementia diagnosis
+consult_dem = select_DEM(consultation_merged) 
+
+#filter list of relevant consultation types
+conslist = [1,2,3,4,6,7,9,10,21,27,28,29,30,31,32,33,34,35,36,37,40,41,42,50,55,61] 
+
+#select rows with relevant consultation types
+consult_dem = consult_dem[consult_dem.constype.isin(conslist)]
+
+
+#merge consultations with diag_minus1m
+consult_dem = pd.merge(consult_dem, all_dem_diag[['e_patid', 'diag_minus1m', 'discharged_0', 'tod' ]], how="left", on="e_patid").copy(deep=True)
+
+#select pts with consultations within 2 weeks of index hospital discharge date
+consult_2weeks_rev = consult_dem[
+    (
+     ((consult_dem.eventdate <= consult_dem.discharged_0 + timedelta(days=14)) &
+      (consult_dem.eventdate >= consult_dem.discharged_0)) |
+     ((consult_dem.eventdate <= consult_dem.tod +timedelta(days=14)) &
+      (consult_dem.eventdate >= consult_dem.tod))
+     )
+    ]
+
+
+
+
+consult_2weeks_rev[['e_patid', 'eventdate', 'discharged_0', 'tod']].head(10)
+
+
+unique_pt_consults = consult_2weeks_rev['e_patid'].nunique()
+#get the set of patient ids with a consultation in the 2 weeks after discharge
+consult_ids  = set(consult_2weeks_rev['e_patid'])
+
+
+
+
+#get variables for presence of co-morbidities
+#get code lists for co-morbidities
+
+CHD_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/Coronary heart disease codes.xlsx")['medcode'])
+cerebrovascular_disease_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/cerebrovascular disease codes.xlsx")['medcode'])
+heart_failure_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/Heart failure codes.xlsx")['medcode'])
+CKD_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/chronic kidney disease codes.xlsx")['medcode'])
+COPD_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/COPD codes.xls")['medcode'])
+diabetes_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/Diabetes codes.xlsx")['medcode'])
+stroke_history_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/History of stroke codes.xlsx")['medcode'])
+
+depression_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/Depression codes.xlsx")['medcode'])
+anxiety_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/Anxiety codes.xls")['medcode'])
+insomnia_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/Insomnia codes.xlsx")['medcode'])
+
+
+#get list of patientids with COPD before or equal to diag_minus1m
+COPD_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(COPD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+COPD_ref = select_DEM(referral_merged[referral_merged.medcode.isin(COPD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+COPD_all = pd.concat([COPD_clin, COPD_ref])
+COPD_all = pd.merge(COPD_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+COPD_all = COPD_all[COPD_all['eventdate'] <= COPD_all['diag_minus1m']]
+COPD_ids = set(COPD_all['e_patid'])
+
+
+
+#get list of patientids with CHD before or equal to diag_minus1m
+CHD_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(CHD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+CHD_ref = select_DEM(referral_merged[referral_merged.medcode.isin(CHD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+CHD_all = pd.concat([CHD_clin, CHD_ref])
+CHD_all = pd.merge(CHD_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+CHD_all = CHD_all[CHD_all['eventdate'] <= CHD_all['diag_minus1m']]
+CHD_ids = set(CHD_all['e_patid'])
+
+
+#get list of patientids with heart failure before or equal to diag_minus1m
+heart_failure_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(heart_failure_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+heart_failure_ref = select_DEM(referral_merged[referral_merged.medcode.isin(heart_failure_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+heart_failure_all = pd.concat([heart_failure_clin, heart_failure_ref])
+heart_failure_all = pd.merge(heart_failure_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+heart_failure_all = heart_failure_all[heart_failure_all['eventdate'] <= heart_failure_all['diag_minus1m']]
+heart_failure_ids = set(heart_failure_all['e_patid'])
+
+
+#get list of patientids with CKD before or equal to diag_minus1m
+CKD_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(CKD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+CKD_ref = select_DEM(referral_merged[referral_merged.medcode.isin(CKD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+CKD_all = pd.concat([CKD_clin, CKD_ref])
+CKD_all = pd.merge(CKD_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+CKD_all = CKD_all[CKD_all['eventdate'] <= CKD_all['diag_minus1m']]
+CKD_ids = set(CKD_all['e_patid'])
+
+
+#get list of patientids with diabetes before or equal to diag_minus1m
+diabetes_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(diabetes_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+diabetes_ref = select_DEM(referral_merged[referral_merged.medcode.isin(diabetes_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+diabetes_all = pd.concat([diabetes_clin, diabetes_ref])
+diabetes_all = pd.merge(diabetes_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+diabetes_all = diabetes_all[diabetes_all['eventdate'] <= diabetes_all['diag_minus1m']]
+diabetes_ids = set(diabetes_all['e_patid'])
+
+
+#get list of patientids with cerebrovasc. disease before or equal to diag_minus1m
+cerebrovasc_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(cerebrovascular_disease_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+cerebrovasc_ref = select_DEM(referral_merged[referral_merged.medcode.isin(cerebrovascular_disease_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+cerebrovasc_all = pd.concat([cerebrovasc_clin, cerebrovasc_ref])
+cerebrovasc_all = pd.merge(cerebrovasc_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+cerebrovasc_all = cerebrovasc_all[cerebrovasc_all['eventdate'] <= cerebrovasc_all['diag_minus1m']]
+cerebrovasc_ids = set(cerebrovasc_all['e_patid'])
+
+
+#get list of patientids with history of stroke before or equal to diag_minus1m
+stroke_history_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(stroke_history_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+stroke_history_ref = select_DEM(referral_merged[referral_merged.medcode.isin(stroke_history_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+stroke_history_all = pd.concat([stroke_history_clin, stroke_history_ref])
+stroke_history_all = pd.merge(stroke_history_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+stroke_history_all = stroke_history_all[stroke_history_all['eventdate'] <= stroke_history_all['diag_minus1m']]
+stroke_history_ids = set(stroke_history_all['e_patid'])
+
+
+#get list of patientids with depression before or equal to diag_minus1m
+depression_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(depression_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+depression_ref = select_DEM(referral_merged[referral_merged.medcode.isin(depression_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+depression_all = pd.concat([depression_clin, depression_ref])
+depression_all = pd.merge(depression_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+depression_all = depression_all[depression_all['eventdate'] <= depression_all['diag_minus1m']]
+depression_ids = set(depression_all['e_patid'])
+
+
+#get list of patientids with anxiety before or equal to diag_minus1m
+anxiety_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(anxiety_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+anxiety_ref = select_DEM(referral_merged[referral_merged.medcode.isin(anxiety_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+anxiety_all = pd.concat([anxiety_clin, anxiety_ref])
+anxiety_all = pd.merge(anxiety_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+anxiety_all = anxiety_all[anxiety_all['eventdate'] <= anxiety_all['diag_minus1m']]
+anxiety_ids = set(anxiety_all['e_patid'])
+
+
+#get list of patientids with insomnia before or equal to diag_minus1m
+insomnia_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(insomnia_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+insomnia_ref = select_DEM(referral_merged[referral_merged.medcode.isin(insomnia_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+insomnia_all = pd.concat([insomnia_clin, insomnia_ref])
+insomnia_all = pd.merge(insomnia_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on='e_patid').copy(deep=True)
+insomnia_all = insomnia_all[insomnia_all['eventdate'] <= insomnia_all['diag_minus1m']]
+insomnia_ids = set(insomnia_all['e_patid'])
+
+
+
+
+#POLYPHARMACY
+#Defined as the presence of 5 or more BNF codes in any 90 day window between diag_minus1m and index hospital admission (admidate_0)
+#define function for time difference
+
+
+#filter for prevmeds
+polypharmacy = select_DEM(therapy_merged)
+
+#select relevant columns
+polypharmacy = polypharmacy[['e_patid', 'eventdate', 'bnfcode']]
+
+#merge in admidate_0 and diagminus_1m
+
+polypharm_all = pd.merge(polypharmacy, all_dem_diag[['e_patid', 'diag_minus1m', 'admidate_0']], how='left', on='e_patid').copy(deep=True)
+
+#filter for meds prescribed on or after diag_minus1m and before first  hospital admission
+polypharm_all = polypharm_all[(polypharm_all['eventdate'] >= polypharm_all['diag_minus1m']) & (polypharm_all['eventdate'] < polypharm_all['admidate_0'])]
+
+#sort by patientid and eventdate
+polypharm_all = sort_id_date_clin(polypharm_all)
+
+#set eventdate as index and get rolling total over 90 days
+polypharm_all =  polypharm_all.set_index('eventdate')
+polypharm_final = (polypharm_all.groupby('e_patid')['bnfcode']).rolling("90D").apply(lambda x: np.unique(x).size, raw=True).reset_index(name='num_meds').drop_duplicates(['e_patid', 'eventdate'], keep='last')
+
+#get max value by e_patid
+polypharm_max = polypharm_final.groupby('e_patid').max('num_meds').reset_index()
+polypharm_max['polypharm_max'] = np.where(polypharm_max['num_meds'] > 4, 1, 0)
+
+polypharm_max1 = polypharm_max[polypharm_max['polypharm_max'] == 1]
+polypharm_max1_ids = set(polypharm_max1['e_patid'])
+ 
+
+
+     
+
+#ANTIPSYCHOTIC MEDICATION - any 2 or more antipsychotic medication prescriptions within 1-year period between diag_minus1m and admidate
+#read in antipsychotic meds codelist
+antipsych_codes = list(pd.read_excel("Z:/Bria/Code lists/Antipsychotic meds codes.xlsx")['prodcode'])
+
+#get patientids with antipsych meds on or after diag_minus1m
+antipsych_meds = select_DEM(therapy_merged[therapy_merged.prodcode.isin(antipsych_codes)].copy(deep=True))[['e_patid', 'prodcode', 'eventdate']]
+antipsych_all = pd.merge(antipsych_meds, all_dem_diag[['e_patid', 'diag_minus1m', 'admidate_0']], how='left', on='e_patid').copy(deep=True)
+
+#filter for meds prescribed on or after diag_minus1m and before first  hospital admission
+antipsych_all = antipsych_all[(antipsych_all['eventdate'] >= antipsych_all['diag_minus1m']) & (antipsych_all['eventdate'] < antipsych_all['admidate_0'])]
+
+
+#sort antipsych_all by patientid and eventdate
+antipsych_all.sort_values(['e_patid', 'eventdate'], inplace=True)
+
+
+#set eventdate as index and get rolling total over 365 days
+antipsych_all =  antipsych_all.set_index('eventdate')
+antipsych_total = (antipsych_all.groupby('e_patid')['prodcode']).rolling("365D").apply(lambda x: x.size, raw=True).reset_index(name='num_antipsych').drop_duplicates(['e_patid', 'eventdate'], keep='last')
+
+#get max vaue by patientid
+antipsych_total_max = antipsych_total.groupby('e_patid').max('num_antipsych').reset_index()
+
+#recode as 2 or over
+antipsych_total_max['ap_total_max'] = np.where(antipsych_total_max['num_antipsych']>=2, 1, 0)
+
+antipsych_total_max1 = antipsych_total_max[antipsych_total_max['ap_total_max'] == 1]
+antipsych_total_max1_ids = set(antipsych_total_max1['e_patid'])
+
+
+
+
+
+
+#MEDICATION REVIEWS#
+
+#read in medication review codes
+medrev_codes = list(pd.read_excel("Z:/Bria/Code lists/Medication review codes.xlsx")['medcode'])
+
+#get patientids with medrev codes on or after diag_minus1m
+medreviews = select_DEM(clinical_merged[clinical_merged.medcode.isin(medrev_codes)].copy(deep=True))[['e_patid', 'medcode', 'eventdate']]
+medreviews_all = pd.merge(medreviews, all_dem_diag[['e_patid', 'diag_minus1m', 'admidate_0']], how='left', on='e_patid').copy(deep=True)
+
+#create a date marker 12 months before index admission date
+medreviews_all['admidate0_minus12m'] = medreviews_all['admidate_0'] - timedelta(days = 365)
+
+#filter for medreviews in the 12months before the first hospital admission
+medreviews_all = medreviews_all[(medreviews_all['eventdate'] >= medreviews_all['admidate0_minus12m']) & (medreviews_all['eventdate'] < medreviews_all['admidate_0'])]
+
+#get the set of patientids for patients with a medication review in the 12 months before index hosp
+medreviews_all_ids = set(medreviews_all['e_patid'])
+
+
+
+#residential status
+residential_codes = list(pd.read_excel("Z:/Bria/Code lists/Residential status codes.xlsx")['medcode'])
+
+
+#get pt ids with residential codes
+residential = select_DEM(clinical_merged[clinical_merged.medcode.isin(residential_codes)].copy(deep=True))[['e_patid', 'medcode', 'eventdate']]
+
+#organise residential care codes
+res_codes = [13359, 13360, 24828, 73321, 24816, 24956, 53140, 59548, 11419, 46642, 49681]
+
+#select pt rows with res-care codes
+residential_pts = residential[residential.medcode.isin(res_codes)]
+
+#merge pts on or after diag_minus1m
+residential_all = pd.merge(residential_pts, all_dem_diag[['e_patid', 'diag_minus1m', 'admidate_0']], how='left', on='e_patid').copy(deep=True)
+
+#select IC pts anytime before index admission date
+res_final = residential_all[(residential_all.eventdate <= (residential_all.admidate_0))]
+
+#get set of IC pt ids
+residential_ids = set(res_final['e_patid'])
+
+
+
+
+
+
+all_vars = all_dem_diag
+ 
+
+all_vars['consults'] = all_vars.e_patid.isin(consult_ids).astype(int)
+all_vars['COPD'] = all_vars.e_patid.isin(COPD_ids).astype(int)
+all_vars['CHD'] = all_vars.e_patid.isin(CHD_ids).astype(int)
+all_vars['heart_failure'] = all_vars.e_patid.isin(heart_failure_ids).astype(int)
+all_vars['CKD'] = all_vars.e_patid.isin(CKD_ids).astype(int)
+all_vars['diabetes'] = all_vars.e_patid.isin(diabetes_ids).astype(int)
+all_vars['cerebrovasc_disease'] = all_vars.e_patid.isin(cerebrovasc_ids).astype(int)
+all_vars['stroke_hx'] = all_vars.e_patid.isin(stroke_history_ids).astype(int)
+all_vars['depression'] = all_vars.e_patid.isin(depression_ids).astype(int)
+all_vars['anxiety'] = all_vars.e_patid.isin(anxiety_ids).astype(int)
+all_vars['insomnia'] = all_vars.e_patid.isin(insomnia_ids).astype(int)
+all_vars['polypharmacy'] = all_vars.e_patid.isin(polypharm_max1_ids).astype(int)
+all_vars['antipsych_meds'] = all_vars.e_patid.isin(antipsych_total_max1_ids).astype(int)
+all_vars['med_reviews'] = all_vars.e_patid.isin(medreviews_all_ids).astype(int)
+all_vars['residential_care'] = all_vars.e_patid.isin(residential_ids).astype(int)
+all_vars['LTC_count'] = all_vars.COPD + all_vars.CHD + all_vars.heart_failure + all_vars.CKD + all_vars.diabetes + all_vars.stroke_hx + all_vars.cerebrovasc_disease + all_vars.depression  + all_vars.anxiety + all_vars.insomnia
+#categorise LTC_counts
+bins = [-1, 0.9, 1.9, 3.9, 5.9, np.inf]
+names = ['0', '1', '2-3', '4-5', '6+']
+all_vars['LTC_cat'] = pd.cut(all_vars['LTC_count'], bins, labels=names)
+
+
+#save all_vars to a stata data file
+
+all_vars.to_stata('Z:/Bria/all_dementia_data_new_dod_2.dta')
+
+
+
+
