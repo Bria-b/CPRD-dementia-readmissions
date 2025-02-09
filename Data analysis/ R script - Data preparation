@@ -168,7 +168,7 @@ dementia_data2 <- dementia_data2[dementia_data2$bmi_status != "", ]
 
 
 
-#New dataframe for patients with deathdate only
+#New dataframe for cox regression analysis
 dementia_data3 <- dementia_data2
 
 
