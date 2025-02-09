@@ -1,0 +1,204 @@
+
+options(max.print = 9999999)
+
+library(haven)
+library(car)
+library(psych)
+library(gmodels)
+
+
+#functions to get ORs and 95%CIs from LR models
+oddsratio <- function(x) {exp(coef(x))}
+oddsratioci <- function(x) {exp(confint(x))}
+
+
+
+#dementia type
+demtype.fit <- glm(Readmission ~ type, data=dementia_data2, family=binomial)
+summary(demtype.fit)
+
+oddsratio(demtype.fit)
+oddsratioci(demtype.fit)
+
+
+#ethnicity
+ethnicity.fit <- glm(Readmission ~ ethnicity_grouped, data=dementia_data2, family=binomial)
+summary(ethnicity.fit)
+
+oddsratio(ethnicity.fit)
+oddsratioci(ethnicity.fit)
+
+#age
+age.fit <- glm(Readmission ~ AgeGrouped, data=dementia_data2, family=binomial)
+summary(age.fit)
+
+oddsratio(age.fit)
+oddsratioci(age.fit)
+
+#GP IMD
+gpimd.fit <- glm(Readmission ~ e2015_imd_5, data=dementia_data2, family =binomial)
+summary(gpimd.fit)
+
+oddsratio(gpimd.fit)
+oddsratioci(gpimd.fit)
+
+#gender
+gender.fit <- glm(Readmission ~ gender, data=dementia_data2, family=binomial)
+summary(gender.fit)
+
+oddsratio(gender.fit)
+oddsratioci(gender.fit)
+
+
+#bmi
+bmi.fit <- glm(Readmission ~ bmi_status, data=dementia_data2, family=binomial)
+summary(bmi.fit)
+
+oddsratio(bmi.fit)
+oddsratioci(bmi.fit)
+
+
+#consults
+consults.fit <- glm(Readmission ~ consults, data=dementia_data2, family=binomial)
+summary(consults.fit)
+
+oddsratio(consults.fit)
+oddsratioci(consults.fit)
+
+#COPD
+COPD.fit <- glm(Readmission ~ CODP, data=dementia_data2, family=binomial)
+summary(COPD.fit)
+
+oddsratio(COPD.fit)
+oddsratioci(COPD.fit)
+
+
+#CHD
+CHD.fit <- glm(Readmission ~ CHD, data=dementia_data2, family=binomial)
+summary(CHD.fit)
+
+oddsratio(CHD.fit)
+oddsratioci(CHD.fit)
+
+#Heart failure
+heart_failure.fit <- glm(Readmission ~ heart_failure, data=dementia_data2, family=binomial)
+summary(heart_failure.fit)
+
+oddsratio(heart_failure.fit)
+oddsratioci(heart_failure.fit)
+
+#CKD
+CKD.fit <- glm(Readmission ~ CKD, data=dementia_data2, family=binomial)
+summary(CKD.fit)
+
+oddsratio(CKD.fit)
+oddsratioci(CKD.fit)
+
+
+#Diabetes
+diabetes.fit <- glm(Readmission ~ diabetes, data=dementia_data2, family=binomial)
+summary(diabetes.fit)
+
+oddsratio(diabetes.fit)
+oddsratioci(diabetes.fit)
+
+#Cerebrovasc disease
+cerebrovasc_disease.fit <- glm(Readmission ~ cerebrovasc_disease, data=dementia_data2, family=binomial)
+summary(cerebrovasc_disease.fit)
+
+oddsratio(cerebrovasc_disease.fit)
+oddsratioci(cerebrovasc_disease.fit)
+
+
+#Stroke history
+stroke_hx.fit <- glm(Readmission ~ stroke_hx, data=dementia_data2, family=binomial)
+summary(stroke_hx.fit)
+
+oddsratio(stroke_hx.fit)
+oddsratioci(stroke_hx.fit)
+
+
+#Depression
+depression.fit <- glm(Readmission ~ depression, data=dementia_data2, family=binomial)
+summary(depression.fit)
+
+oddsratio(depression.fit)
+oddsratioci(depression.fit)
+
+
+#Anxiety
+anxiety.fit <- glm(Readmission ~ anxiety, data=dementia_data2, family=binomial)
+summary(anxiety.fit)
+
+oddsratio(anxiety.fit)
+oddsratioci(anxiety.fit)
+
+
+#Insomnia
+insomnia.fit <- glm(Readmission ~ insomnia, data=dementia_data2, family=binomial)
+summary(insomnia.fit)
+
+oddsratio(insomnia.fit)
+oddsratioci(insomnia.fit)
+
+
+#LTC category
+LTC_cat.fit <- glm(Readmission ~ LTC_cat, data=dementia_data2, family=binomial)
+summary(LTC_cat.fit)
+
+oddsratio(LTC_cat.fit)
+oddsratioci(LTC_cat.fit)
+
+
+
+#Polypharmacy
+polypharmacy.fit <- glm(Readmission ~ polypharmacy, data=dementia_data2, family=binomial)
+summary(polypharmacy.fit)
+
+oddsratio(polypharmacy.fit)
+oddsratioci(polypharmacy.fit)
+
+
+#Antipsych meds
+antipsych_meds.fit <- glm(Readmission ~ antipsych_meds, data=dementia_data2, family=binomial)
+summary(antipsych_meds.fit)
+
+oddsratio(antipsych_meds.fit)
+oddsratioci(antipsych_meds.fit)
+
+#Medication reviews
+med_reviews.fit <- glm(Readmission ~ med_reviews, data=dementia_data2, family=binomial)
+summary(med_reviews.fit)
+
+oddsratio(med_reviews.fit)
+oddsratioci(med_reviews.fit)
+
+
+#residential care
+residential_care.fit <- glm(Readmission ~ residential_care, data=dementia_data2, family=binomial)
+summary(residential_care.fit)
+
+oddsratio(residential_care.fit)
+oddsratioci(residential_care.fit)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
