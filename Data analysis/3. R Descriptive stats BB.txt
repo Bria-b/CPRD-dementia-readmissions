@@ -1,0 +1,204 @@
+#descriptive stats examples
+
+dementia_data2
+
+#Age (continuous)
+hist(dementia_data2$age_at_diag, main="Distribution of age", xlab="Age", col="lightgreen", breaks=10)
+summary(dementia_data2$age_at_diag) # this gives the summary statistics
+sd(dementia_data2$age_at_diag, na.rm=TRUE) # summary doesn't give standard deviation so that is what this line does
+
+
+#gp imd(continuous)
+hist(dementia_data2$e2015_imd_5, main = "Distribution of GP IMD", xlab = "GP IMD", col="lightblue", breaks=10)
+summary(dementia_data2$e2015_imd_5)
+sd(dementia_data2$e2015_imd_5, na.rm=TRUE)
+
+table(dementia_data2$e2015_imd_5)
+
+#this section gives frequency counts for categorical variables
+table(dementia_data2$AgeGrouped) 
+table(dementia_data2$gender)
+table(dementia_data2$ethnicity_grouped)
+table(dementia_data2$bmi_status)
+sum(dementia_data2$bmi_status == "NA")
+table(dementia_data2$Deceased) #readmitted and non-readmitted pts
+table(dementia_data2$adm_yearGroup)
+table(dementia_data2$years_to_adm)
+table(dementia_data4$Readmission)
+table(dementia_data2$COPD)
+table(dementia_data2$CHD)
+table(dementia_data2$heart_failure)
+table(dementia_data2$CKD)
+table(dementia_data2$diabetes)
+table(dementia_data2$cerebrovasc_disease)
+table(dementia_data2$stroke_hx)
+table(dementia_data2$depression)
+table(dementia_data2$anxiety)
+table(dementia_data2$insomnia)
+table(dementia_data2$LTC_cat)
+table(dementia_data2$region)
+table(dementia_data2$residential_care)
+
+
+
+#calc number of GP surgeries in database
+num_gp <-length(unique(dementia_data2$e_pracid))
+print(num_gp)
+
+
+
+#determine number of readmissions per GP IMD quintile
+library(dplyr)
+result <- dementia_data4 %>%
+  group_by(e2015_imd_5) %>%
+  summarize(readmission_count = sum(Readmission == TRUE, na.rm = TRUE))
+print(result)
+
+
+#determine age group by years to adm 
+summary_table <- table(dementia_data2$years_to_adm, dementia_data2$AgeGrouped)
+print(summary_table)
+
+
+
+
+table(dementia_data2$polypharmacy)
+table(dementia_data2$antipsych_meds)
+table(dementia_data2$consults)
+table(dementia_data2$med_reviews)
+
+
+
+
+#clinical characteristics for subgroup
+table(dementia_data4$COPD)
+table(dementia_data4$CHD)
+table(dementia_data4$heart_failure)
+table(dementia_data4$CKD)
+table(dementia_data4$diabetes)
+table(dementia_data4$cerebrovasc_disease)
+table(dementia_data4$stroke_hx)
+table(dementia_data4$depression)
+table(dementia_data4$anxiety)
+table(dementia_data4$insomnia)
+table(dementia_data4$region)
+table(dementia_data4$residential_care)
+table(dementia_data4$polypharmacy)
+table(dementia_data4$antipsych_meds)
+table(dementia_data4$consults)
+table(dementia_data4$med_reviews)
+table(dementia_data4$LTC_cat)
+
+
+#determine number of readmissions per dementia type
+dem_type <- dementia_data4 %>%
+  group_by(type) %>%
+  summarize(readmission_count = sum(Readmission == TRUE, na.rm = TRUE))
+print(dem_type)
+
+
+
+#determine number of readmissions per gender
+gender_readm <- dementia_data4 %>%
+  group_by(gender) %>%
+  summarize(readmission_count = sum(Readmission == TRUE, na.rm = TRUE))
+print(gender_readm)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#Chisquared analyses
+
+#age
+CrossTable(dementia_data2$Readmission, dementia_data2$AgeGrouped, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#gender
+CrossTable(dementia_data2$Readmission, dementia_data2$gender, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#COPD
+CrossTable(dementia_data2$Readmission, dementia_data2$COPD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#CHD
+CrossTable(dementia_data2$Readmission, dementia_data2$CHD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#Heart failure
+CrossTable(dementia_data2$Readmission, dementia_data2$heart_failure, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#CKD
+CrossTable(dementia_data2$Readmission, dementia_data2$CKD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#diabetes
+CrossTable(dementia_data2$Readmission, dementia_data2$diabetes, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#cerebrovasc disease
+CrossTable(dementia_data2$Readmission, dementia_data2$cerebrovasc_disease, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#history of stroke
+CrossTable(dementia_data2$Readmission, dementia_data2$stroke_hx, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#depression
+CrossTable(dementia_data2$Readmission, dementia_data2$depression, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#anxiety
+CrossTable(dementia_data2$Readmission, dementia_data2$anxiety, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+
+#insomnia
+CrossTable(dementia_data2$Readmission, dementia_data2$insomnia, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+
+#LTC categories
+CrossTable(dementia_data2$Readmission, dementia_data2$LTC_cat, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+
+#polypharmacy
+CrossTable(dementia_data2$Readmission, dementia_data2$polypharmacy, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#antipsych meds
+CrossTable(dementia_data2$Readmission, dementia_data2$antipsych_meds, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#medication reviews
+CrossTable(dementia_data2$Readmission, dementia_data2$med_reviews, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#residential care
+CrossTable(dementia_data2$Readmission, dementia_data2$residential_care, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#bmi (binary)
+CrossTable(dementia_data2$Readmission, dementia_data2$bmi_overweight, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#dementia type
+CrossTable(dementia_data2$Readmission, dementia_data2$type, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+
+#ethnicity
+CrossTable(dementia_data2$Readmission, dementia_data2$ethnicity_grouped, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+
+#region
+CrossTable(dementia_data2$Readmission, dementia_data2$region, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+#primary care visits post-d/c
+CrossTable(dementia_data2$Readmission, dementia_data2$consults, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+
+#gp imd group
+CrossTable(dementia_data2$Readmission, dementia_data2$e2015_imd_5, prop.t=FALSE, prop.chisq =FALSE, chisq =TRUE)
+
+
+
+
+
