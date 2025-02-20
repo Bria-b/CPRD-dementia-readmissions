@@ -1,0 +1,201 @@
+options(max.print = 9999999)
+rm(list=ls())
+setwd("Z:/Bria")
+library(haven)
+library(car)
+library(psych)
+library(gmodels)
+
+dementia_data <- read_dta("all_dementia_data_new_dod_2.dta")
+dementia_data <- zap_formats(dementia_data)
+#Hopefully this will create the readmission variable
+dementia_data$Readmission <- !is.na(dementia_data$admidate_1) 
+
+
+
+
+#group the age variable into intervals (categories include lowest value but not highest value)
+
+dementia_data$AgeGrouped <- cut(dementia_data$age_at_diag, breaks = c(65, 70, 75, 80, 85, 90, Inf), right=FALSE)
+levels(dementia_data$AgeGrouped) <- c("65-69", "70-74", "75-79", "80-84", "85-89", "90+")
+
+
+#recode LTC categories to a factor variable
+dementia_data$LTC_cat <- as.factor(dementia_data$LTC_cat)
+
+#group LTC categories
+levels(dementia_data$LTC_cat) <- c("0", "1", "2-3", "4-5", "6+")
+
+
+
+#recode e_pracid to a factor variable
+dementia_data$e_pracid <- as.factor(dementia_data$e_pracid)
+
+
+#gp imd to remain a numeric/continuous variable
+
+
+#group index_adm_year into intervals
+dementia_data$adm_yearGroup <- cut(dementia_data$index_adm_year, breaks = c(1997, 2007, 2019), right=FALSE)
+levels(dementia_data$adm_yearGroup) <- c("1997-2006", "2007-2018")
+
+
+
+#group dementia diagnosis year into 2-yearly groups
+#define break points from 1997 to 2020 in 2 yearly intervals
+breaks <- seq(1997, 2020, by = 2)
+
+#generate labels corresponding to the intervals
+labels <- paste(breaks[-length(breaks)], breaks[-1] - 1, sep = "-")
+
+#create new variable
+dementia_data$diag_yearGroup <- cut(
+  dementia_data$diag_year,
+  breaks = breaks,
+  right = FALSE,
+  include.lowest = TRUE,
+  labels = labels
+)
+
+
+
+
+#leave years_to_admin as a numeric/continuous variable
+
+
+
+#recode ethnicity into condensed categories
+library(dplyr)
+
+dementia_data <- dementia_data %>%
+  mutate(ethnicity_grouped = case_when(
+    gen_ethnicity %in% c("Bl_Afric", "Bl_Carib", "Bl_Other") ~ "Black",
+    gen_ethnicity %in% c("Bangladesi", "Chinese", "Indian", "Oth_Asian", "Pakistani") ~ "Asian",
+    TRUE ~ gen_ethnicity #keep other categories unchanged
+  )) %>%
+  filter(ethnicity_grouped != "Unknown") #remove rows with "unknown" - this is missing data.
+
+
+
+
+#recode ethnicity variable to a factor variable
+dementia_data$ethnicity_grouped <- as.factor(dementia_data$ethnicity_grouped)
+
+
+#change reference ethnicity level to White
+dementia_data$ethnicity_grouped <- relevel(dementia_data$ethnicity_grouped, ref = "White")
+
+
+#recode consults to a factor variable
+dementia_data$consults <- as.factor(dementia_data$consults)
+
+
+#recode LTCs and other covariates to factor variables:
+dementia_data$COPD <- as.factor(dementia_data$COPD)
+dementia_data$CHD <- as.factor(dementia_data$CHD)
+dementia_data$heart_failure <- as.factor(dementia_data$heart_failure)
+dementia_data$CKD <- as.factor(dementia_data$CKD)
+dementia_data$diabetes <- as.factor(dementia_data$diabetes)
+dementia_data$cerebrovasc_disease <- as.factor(dementia_data$cerebrovasc_disease)
+dementia_data$stroke_hx <- as.factor(dementia_data$stroke_hx)
+dementia_data$depression <- as.factor(dementia_data$depression)
+dementia_data$anxiety <- as.factor(dementia_data$anxiety)
+dementia_data$insomnia <- as.factor(dementia_data$insomnia)
+
+dementia_data$polypharmacy <- as.factor(dementia_data$polypharmacy)
+
+dementia_data$antipsych_meds <- as.factor(dementia_data$antipsych_meds)
+
+dementia_data$med_reviews <- as.factor(dementia_data$med_reviews)
+
+dementia_data$residential_care <- as.factor(dementia_data$residential_care)
+
+
+#recode gender to a factor variable and add male/female labels
+dementia_data$gender <- factor(dementia_data$gender, levels = c(0, 1), labels = c("Male", "Female"))
+
+
+#recode dementia type to a factor variable
+dementia_data$type <- as.factor(dementia_data$type)
+
+#recode missing/empty cells as "Unspecified" in dementia type column
+dementia_data$type <- car::recode(dementia_data$type, "c('nan', 'None', '')='Unspecified'")
+dementia_data$type <- relevel(dementia_data$type, ref = "Unspecified") #make unspecified dementia the reference category
+
+#don't recode NA in the date columns - won't be able to perform date-related operations#
+
+#recode deathdate as a date format
+dementia_data$deathdate <- as.Date(dementia_data$deathdate, format = "%d/%m/%Y")
+dementia_data$dod <- as.Date(dementia_data$dod, format = "%d/%m/%Y")
+
+
+#create variable to show deceased pts
+dementia_data$Deceased <- !is.na(dementia_data$dod) 
+
+
+
+
+#recode transfer-out date as date format
+dementia_data$tod <- as.Date(dementia_data$tod, format = "%d/%m/%Y")
+
+
+#recode latest collection date (lcd) as date format
+dementia_data$lcd <- as.Date(dementia_data$lcd, format = "%d/%m/%Y")
+
+
+
+#recode admidate_0 as a date format
+dementia_data$admidate_0 <- as.Date(dementia_data$admidate_0, format = "%Y/%m/%d")
+
+#recode discharge as a date format 
+dementia_data$discharged_0 <- as.Date(dementia_data$discharged_0, format = "%Y/%m/%d")
+
+
+#recode admidate_1 as a date format 
+dementia_data$admidate_1 <- as.Date(dementia_data$admidate_1, format = "%Y/%m/%d")
+
+#recode tod as a date format
+dementia_data$tod <- as.Date(dementia_data$tod, format = "%Y/%m/%d")
+
+#recode region to a factor variable
+dementia_data$region <- as.factor(dementia_data$region)
+
+
+#recode bmi to a factor variable
+dementia_data$bmi_status <- as.factor(dementia_data$bmi_status)
+
+
+#create new dataframe for sensitivity analysis where missing bmi data is excluded
+dementia_data2 <- dementia_data
+
+
+
+#recode missing or empty cells as "Healthy weight" in bmi_status
+dementia_data$bmi_status <- car::recode(dementia_data$bmi_status, "c('nan', 'None', '')='NA'")
+
+
+
+
+
+
+
+
+
+#NEW DATAFRAME PREP FOR SENSITIVITY ANALYSIS
+#remove bmi missing data from new dataframe
+dementia_data2 <- dementia_data2[dementia_data2$bmi_status != "", ]
+
+
+
+#New dataframe for patients with deathdate only
+dementia_data3 <- dementia_data2
+
+
+#cohort without readmissions
+dementia_data6 <- dementia_data2[is.na(dementia_data2$admidate_1), ]
+
+
+
+
+
+
