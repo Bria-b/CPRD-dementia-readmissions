@@ -27,7 +27,7 @@ table(dementia_data2$adm_yearGroup)
 table(dementia_data2$years_to_adm)
 table(dementia_data4$Readmission)
 table(dementia_data2$COPD)
-table(dementia_data2$CHD)
+table(dementia_data2$CVD)
 table(dementia_data2$heart_failure)
 table(dementia_data2$CKD)
 table(dementia_data2$diabetes)
@@ -74,7 +74,7 @@ sd(dementia_data2$years_to_adm, na.rm = TRUE)
 
 #clinical characteristics for subgroup
 table(dementia_data4$COPD)
-table(dementia_data4$CHD)
+table(dementia_data4$CVD)
 table(dementia_data4$heart_failure)
 table(dementia_data4$CKD)
 table(dementia_data4$diabetes)
@@ -134,7 +134,7 @@ table(dementia_data6$residential_care)
 table(dementia_data6$type)
 table(dementia_data6$bmi_status)
 table(dementia_data6$COPD)
-table(dementia_data6$CHD)
+table(dementia_data6$CVD)
 table(dementia_data6$heart_failure)
 table(dementia_data6$CKD)
 table(dementia_data6$diabetes)
@@ -168,8 +168,8 @@ CrossTable(dementia_data2$Readmission, dementia_data2$gender, prop.t=FALSE, prop
 #COPD
 CrossTable(dementia_data2$Readmission, dementia_data2$COPD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 
-#CHD
-CrossTable(dementia_data2$Readmission, dementia_data2$CHD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+#CVD
+CrossTable(dementia_data2$Readmission, dementia_data2$CVD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 
 #Heart failure
 CrossTable(dementia_data2$Readmission, dementia_data2$heart_failure, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
