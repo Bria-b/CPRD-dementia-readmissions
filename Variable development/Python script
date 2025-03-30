@@ -596,7 +596,7 @@ consult_ids  = set(consult_2weeks_rev['e_patid'])
 #get variables for presence of co-morbidities
 #get code lists for co-morbidities
 
-CHD_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/Coronary heart disease codes.xlsx")['medcode'])
+CVD_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/CVD codes.xlsx")['medcode'])
 cerebrovascular_disease_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/cerebrovascular disease codes.xlsx")['medcode'])
 heart_failure_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/Heart failure codes.xlsx")['medcode'])
 CKD_codes = list(pd.read_excel("Z:/Bria/Code lists/LTC/chronic kidney disease codes.xlsx")['medcode'])
@@ -619,13 +619,13 @@ COPD_ids = set(COPD_all['e_patid'])
 
 
 
-#get list of patientids with CHD before or equal to diag_minus1m
-CHD_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(CHD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
-CHD_ref = select_DEM(referral_merged[referral_merged.medcode.isin(CHD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
-CHD_all = pd.concat([CHD_clin, CHD_ref])
-CHD_all = pd.merge(CHD_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
-CHD_all = CHD_all[CHD_all['eventdate'] <= CHD_all['diag_minus1m']]
-CHD_ids = set(CHD_all['e_patid'])
+#get list of patientids with CVD before or equal to diag_minus1m
+CVD_clin = select_DEM(clinical_merged[clinical_merged.medcode.isin(CVD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+CVD_ref = select_DEM(referral_merged[referral_merged.medcode.isin(CVD_codes)].copy(deep=True))[['e_patid', 'eventdate']]
+CVD_all = pd.concat([CVD_clin, CVD_ref])
+CVD_all = pd.merge(CVD_all, all_dem_diag[['e_patid', 'diag_minus1m']], how="left", on="e_patid").copy(deep=True)
+CVD_all = CVD_all[CVD_all['eventdate'] <= CVD_all['diag_minus1m']]
+CVD_ids = set(CVD_all['e_patid'])
 
 
 #get list of patientids with heart failure before or equal to diag_minus1m
@@ -824,7 +824,7 @@ all_vars = all_dem_diag
 
 all_vars['consults'] = all_vars.e_patid.isin(consult_ids).astype(int)
 all_vars['COPD'] = all_vars.e_patid.isin(COPD_ids).astype(int)
-all_vars['CHD'] = all_vars.e_patid.isin(CHD_ids).astype(int)
+all_vars['CVD'] = all_vars.e_patid.isin(CVD_ids).astype(int)
 all_vars['heart_failure'] = all_vars.e_patid.isin(heart_failure_ids).astype(int)
 all_vars['CKD'] = all_vars.e_patid.isin(CKD_ids).astype(int)
 all_vars['diabetes'] = all_vars.e_patid.isin(diabetes_ids).astype(int)
