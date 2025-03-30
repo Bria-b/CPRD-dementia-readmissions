@@ -92,7 +92,7 @@ dementia_data$consults <- as.factor(dementia_data$consults)
 
 #recode LTCs and other covariates to factor variables:
 dementia_data$COPD <- as.factor(dementia_data$COPD)
-dementia_data$CHD <- as.factor(dementia_data$CHD)
+dementia_data$CVD <- as.factor(dementia_data$CHD)
 dementia_data$heart_failure <- as.factor(dementia_data$heart_failure)
 dementia_data$CKD <- as.factor(dementia_data$CKD)
 dementia_data$diabetes <- as.factor(dementia_data$diabetes)
