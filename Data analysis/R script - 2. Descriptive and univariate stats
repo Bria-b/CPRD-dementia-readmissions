@@ -1,4 +1,3 @@
-#descriptive stats examples
 
 dementia_data2
 
@@ -27,10 +26,11 @@ table(dementia_data2$adm_yearGroup)
 table(dementia_data2$years_to_adm)
 table(dementia_data4$Readmission)
 table(dementia_data2$COPD)
-table(dementia_data2$CVD)
+table(dementia_data2$CHD)
 table(dementia_data2$heart_failure)
 table(dementia_data2$CKD)
-table(dementia_data2$diabetes)
+table(dementia_data2$T1DM)
+table(dementia_data2$T2DM)
 table(dementia_data2$cerebrovasc_disease)
 table(dementia_data2$stroke_hx)
 table(dementia_data2$depression)
@@ -74,10 +74,11 @@ sd(dementia_data2$years_to_adm, na.rm = TRUE)
 
 #clinical characteristics for subgroup
 table(dementia_data4$COPD)
-table(dementia_data4$CVD)
+table(dementia_data4$CHD)
 table(dementia_data4$heart_failure)
 table(dementia_data4$CKD)
-table(dementia_data4$diabetes)
+table(dementia_data4$T1DM)
+table(dementia_data4$T2DM)
 table(dementia_data4$cerebrovasc_disease)
 table(dementia_data4$stroke_hx)
 table(dementia_data4$depression)
@@ -134,10 +135,11 @@ table(dementia_data6$residential_care)
 table(dementia_data6$type)
 table(dementia_data6$bmi_status)
 table(dementia_data6$COPD)
-table(dementia_data6$CVD)
+table(dementia_data6$CHD)
 table(dementia_data6$heart_failure)
 table(dementia_data6$CKD)
-table(dementia_data6$diabetes)
+table(dementia_data6$T1DM)
+table(dementia_data6$T2DM)
 table(dementia_data6$cerebrovasc_disease)
 table(dementia_data6$stroke_hx)
 table(dementia_data6$depression)
@@ -168,8 +170,8 @@ CrossTable(dementia_data2$Readmission, dementia_data2$gender, prop.t=FALSE, prop
 #COPD
 CrossTable(dementia_data2$Readmission, dementia_data2$COPD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 
-#CVD
-CrossTable(dementia_data2$Readmission, dementia_data2$CVD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+#CHD
+CrossTable(dementia_data2$Readmission, dementia_data2$CHD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 
 #Heart failure
 CrossTable(dementia_data2$Readmission, dementia_data2$heart_failure, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
@@ -177,8 +179,13 @@ CrossTable(dementia_data2$Readmission, dementia_data2$heart_failure, prop.t=FALS
 #CKD
 CrossTable(dementia_data2$Readmission, dementia_data2$CKD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 
-#diabetes
-CrossTable(dementia_data2$Readmission, dementia_data2$diabetes, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+#Type 1 diabetes
+CrossTable(dementia_data2$Readmission, dementia_data2$T1DM, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
+
+#Type 2 diabetes
+CrossTable(dementia_data2$Readmission, dementia_data2$T2DM, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+
 
 #cerebrovasc disease
 CrossTable(dementia_data2$Readmission, dementia_data2$cerebrovasc_disease, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
@@ -245,12 +252,3 @@ wilcox.test(dementia_data2$years_to_adm ~ dementia_data2$Readmission)
 #person years (continuous)
 hist(dementia_data5$person_years) #shows not normal distribution
 wilcox.test(dementia_data5$person_years ~ dementia_data5$Readmission)
-
-
-
-
-
-
-
-
-
