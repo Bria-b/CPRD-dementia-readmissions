@@ -1,3 +1,6 @@
+BB_univariate_logreg_file <- "BB univariate logistic regression output.doc"
+sink(BB_univariate_logreg_file)
+
 
 options(max.print = 9999999)
 
@@ -66,19 +69,19 @@ oddsratio(consults.fit)
 oddsratioci(consults.fit)
 
 #COPD
-COPD.fit <- glm(Readmission ~ CODP, data=dementia_data2, family=binomial)
+COPD.fit <- glm(Readmission ~ COPD, data=dementia_data2, family=binomial)
 summary(COPD.fit)
 
 oddsratio(COPD.fit)
 oddsratioci(COPD.fit)
 
 
-#CVD
-CVD.fit <- glm(Readmission ~ CVD, data=dementia_data2, family=binomial)
-summary(CVD.fit)
+#CHD
+CHD.fit <- glm(Readmission ~ CHD, data=dementia_data2, family=binomial)
+summary(CHD.fit)
 
-oddsratio(CVD.fit)
-oddsratioci(CVD.fit)
+oddsratio(CHD.fit)
+oddsratioci(CHD.fit)
 
 #Heart failure
 heart_failure.fit <- glm(Readmission ~ heart_failure, data=dementia_data2, family=binomial)
@@ -95,12 +98,22 @@ oddsratio(CKD.fit)
 oddsratioci(CKD.fit)
 
 
-#Diabetes
-diabetes.fit <- glm(Readmission ~ diabetes, data=dementia_data2, family=binomial)
-summary(diabetes.fit)
+#Type 1 diabetes
+T1DM.fit <- glm(Readmission ~ T1DM, data=dementia_data2, family=binomial)
+summary(T1DM.fit)
 
-oddsratio(diabetes.fit)
-oddsratioci(diabetes.fit)
+oddsratio(T1DM.fit)
+oddsratioci(T1DM.fit)
+
+
+#Type 2 diabetes
+T2DM.fit <- glm(Readmission ~ T2DM, data=dementia_data2, family=binomial)
+summary(T2DM.fit)
+
+oddsratio(T2DM.fit)
+oddsratioci(T2DM.fit)
+
+
 
 #Cerebrovasc disease
 cerebrovasc_disease.fit <- glm(Readmission ~ cerebrovasc_disease, data=dementia_data2, family=binomial)
@@ -182,7 +195,4 @@ oddsratio(residential_care.fit)
 oddsratioci(residential_care.fit)
 
 
-
-
-
-
+sink()
