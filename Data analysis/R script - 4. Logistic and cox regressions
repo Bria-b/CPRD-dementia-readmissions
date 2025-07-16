@@ -5,7 +5,7 @@ sink(BB_output_file)
 
 
 #first model:
-multilogreg.fit <- glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults + COPD + CVD + heart_failure + CKD + diabetes + cerebrovasc_disease + stroke_hx + depression + anxiety + insomnia + polypharmacy + antipsych_meds + med_reviews + residential_care + e2015_imd_5, data=dementia_data, family=binomial(link="logit"))
+multilogreg.fit <- glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults + COPD + CHD + heart_failure + CKD + T1DM + T2DM + cerebrovasc_disease + stroke_hx + depression + anxiety + insomnia + polypharmacy + antipsych_meds + med_reviews + residential_care + e2015_imd_5, data=dementia_data, family=binomial(link="logit"))
 summary(multilogreg.fit)
 
 
@@ -32,7 +32,7 @@ multi_aic_both <- step(multilogreg.fit, scope=list(lower=fitted_null, upper=mult
 summary(multi_aic_both)
 
 #final model based on these (lowest AIC number: all models have same number so chose both - can choose any.)
-final_log_reg <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults + COPD + CVD + heart_failure + CKD + diabetes + cerebrovasc_disease + stroke_hx + depression + antipsych_meds + med_reviews + residential_care, data=dementia_data, family=binomial(link="logit")) 
+final_log_reg <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults + COPD + CHD + heart_failure + CKD + T1DM + cerebrovasc_disease + stroke_hx + depression + antipsych_meds + med_reviews + residential_care, data=dementia_data, family=binomial(link="logit")) 
 summary(final_log_reg)
 
 
@@ -126,7 +126,7 @@ dev.off() #resets graphics device if graphs not showing
 #MODEL 2: bmi missing data removed
 
 multilogreg2.fit<- glm(Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults
-                       + COPD + CVD + heart_failure + CKD + diabetes + cerebrovasc_disease + stroke_hx + depression
+                       + COPD + CHD + heart_failure + CKD + T1DM + T2DM + cerebrovasc_disease + stroke_hx + depression
                        + anxiety + insomnia + polypharmacy + antipsych_meds + med_reviews + residential_care
                        + e2015_imd_5, data=dementia_data2, family=binomial(link="logit"))
 
@@ -152,7 +152,7 @@ multi_aic_both2 <- step(multilogreg2.fit, scope=list(lower=fitted_null2, upper=m
 summary(multi_aic_both2)
 
 #final model based on these (lowest AIC number: all models have same number so chose both - can choose any.)
-final_logreg2 <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + consults + COPD + CVD + heart_failure + CKD + diabetes + cerebrovasc_disease + depression + med_reviews + residential_care, data=dementia_data2, family=binomial(link="logit")) 
+final_logreg2 <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + consults + COPD + CHD + heart_failure + CKD +T1DM + cerebrovasc_disease + depression + med_reviews + residential_care, data=dementia_data2, family=binomial(link="logit")) 
 summary(final_logreg2)
 
 
@@ -702,5 +702,3 @@ sd(dementia_data4.2$time_to_event, na.rm=TRUE)
 
 
 sink()
-
-
