@@ -16,7 +16,7 @@ dementia_data$Readmission <- !is.na(dementia_data$admidate_1)
 
 #group the age variable into intervals (categories include lowest value but not highest value)
 
-dementia_data$AgeGrouped <- cut(dementia_data$age_at_diag, breaks = c(65, 70, 75, 80, 85, 90, Inf), right=FALSE)
+dementia_data$AgeGrouped <- cut(dementia_data$index_adm_age, breaks = c(65, 70, 75, 80, 85, 90, Inf), right=FALSE)
 levels(dementia_data$AgeGrouped) <- c("65-69", "70-74", "75-79", "80-84", "85-89", "90+")
 
 
@@ -92,7 +92,7 @@ dementia_data$consults <- as.factor(dementia_data$consults)
 
 #recode LTCs and other covariates to factor variables:
 dementia_data$COPD <- as.factor(dementia_data$COPD)
-dementia_data$CHD <- as.factor(dementia_data$CHD)
+dementia_data$CVD <- as.factor(dementia_data$CVD)
 dementia_data$heart_failure <- as.factor(dementia_data$heart_failure)
 dementia_data$CKD <- as.factor(dementia_data$CKD)
 dementia_data$T1DM <- as.factor(dementia_data$T1DM)
@@ -177,6 +177,11 @@ dementia_data$bmi_status <- car::recode(dementia_data$bmi_status, "c('nan', 'Non
 
 
 
+
+
+
+
+
 #NEW DATAFRAME PREP FOR SENSITIVITY ANALYSIS
 #remove bmi missing data from new dataframe
 dementia_data2 <- dementia_data2[dementia_data2$bmi_status != "", ]
@@ -189,3 +194,9 @@ dementia_data3 <- dementia_data2
 
 #cohort without readmissions
 dementia_data6 <- dementia_data2[is.na(dementia_data2$admidate_1), ]
+
+
+
+
+
+
