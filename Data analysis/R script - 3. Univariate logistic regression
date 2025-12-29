@@ -76,12 +76,12 @@ oddsratio(COPD.fit)
 oddsratioci(COPD.fit)
 
 
-#CHD
-CHD.fit <- glm(Readmission ~ CHD, data=dementia_data2, family=binomial)
-summary(CHD.fit)
+#CVD
+CVD.fit <- glm(Readmission ~ CVD, data=dementia_data2, family=binomial)
+summary(CVD.fit)
 
-oddsratio(CHD.fit)
-oddsratioci(CHD.fit)
+oddsratio(CVD.fit)
+oddsratioci(CVD.fit)
 
 #Heart failure
 heart_failure.fit <- glm(Readmission ~ heart_failure, data=dementia_data2, family=binomial)
@@ -196,3 +196,6 @@ oddsratioci(residential_care.fit)
 
 
 sink()
+
+
+
