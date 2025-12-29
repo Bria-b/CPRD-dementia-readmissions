@@ -1,10 +1,10 @@
+#descriptive stats
 
-dementia_data2
 
 #Age (continuous)
-hist(dementia_data2$age_at_diag, main="Distribution of age", xlab="Age", col="lightgreen", breaks=10)
-summary(dementia_data2$age_at_diag) # this gives the summary statistics
-sd(dementia_data2$age_at_diag, na.rm=TRUE) # summary doesn't give standard deviation so that is what this line does
+hist(dementia_data2$index_adm_age, main="Distribution of age", xlab="Age", col="lightgreen", breaks=10)
+summary(dementia_data2$index_adm_age) # this gives the summary statistics
+sd(dementia_data2$index_adm_age, na.rm=TRUE) # summary doesn't give standard deviation so that is what this line does
 
 
 #gp imd(continuous)
@@ -21,12 +21,12 @@ table(dementia_data2$gender)
 table(dementia_data2$ethnicity_grouped)
 table(dementia_data2$bmi_status)
 sum(dementia_data2$bmi_status == "NA")
-table(dementia_data2$Deceased) #readmitted and non-readmitted pts
+table(dementia_data2$Deceased) #whole cohort
 table(dementia_data2$adm_yearGroup)
-table(dementia_data2$years_to_adm)
 table(dementia_data4$Readmission)
+table(dementia_data2$type)
 table(dementia_data2$COPD)
-table(dementia_data2$CHD)
+table(dementia_data2$CVD)
 table(dementia_data2$heart_failure)
 table(dementia_data2$CKD)
 table(dementia_data2$T1DM)
@@ -56,10 +56,6 @@ result <- dementia_data4 %>%
 print(result)
 
 
-#determine age group by years to adm 
-summary_table <- table(dementia_data2$years_to_adm, dementia_data2$AgeGrouped)
-print(summary_table)
-
 
 
 
@@ -73,8 +69,9 @@ summary(dementia_data2$years_to_adm)
 sd(dementia_data2$years_to_adm, na.rm = TRUE)
 
 #clinical characteristics for subgroup
+table(dementia_data4$AgeGrouped) 
 table(dementia_data4$COPD)
-table(dementia_data4$CHD)
+table(dementia_data4$CVD)
 table(dementia_data4$heart_failure)
 table(dementia_data4$CKD)
 table(dementia_data4$T1DM)
@@ -92,12 +89,15 @@ table(dementia_data4$consults)
 table(dementia_data4$med_reviews)
 table(dementia_data4$LTC_cat)
 table(dementia_data4$ethnicity_grouped)
-table(dementia_data4$region)
 table(dementia_data4$Deceased)
 table(dementia_data4$bmi_status)
 #years to admission
 summary(dementia_data4$years_to_adm)
 sd(dementia_data4$years_to_adm, na.rm = TRUE)
+
+#age (continuous)
+summary(dementia_data4$index_adm_age) 
+sd(dementia_data4$index_adm_age, na.rm=TRUE)
 
 
 
@@ -119,8 +119,8 @@ print(gender_readm)
 ##############################
 #stats for non readmitted group
 #Age (continuous)
-summary(dementia_data6$age_at_diag)
-sd(dementia_data6$age_at_diag, na.rm=TRUE)
+summary(dementia_data6$index_adm_age) 
+sd(dementia_data6$index_adm_age, na.rm=TRUE)
 
 #years to admission
 summary(dementia_data6$years_to_adm)
@@ -135,7 +135,7 @@ table(dementia_data6$residential_care)
 table(dementia_data6$type)
 table(dementia_data6$bmi_status)
 table(dementia_data6$COPD)
-table(dementia_data6$CHD)
+table(dementia_data6$CVD)
 table(dementia_data6$heart_failure)
 table(dementia_data6$CKD)
 table(dementia_data6$T1DM)
@@ -145,7 +145,7 @@ table(dementia_data6$stroke_hx)
 table(dementia_data6$depression)
 table(dementia_data6$anxiety)
 table(dementia_data6$insomnia)
-table(dementia_data4$residential_care)
+table(dementia_data6$residential_care)
 table(dementia_data6$polypharmacy)
 table(dementia_data6$antipsych_meds)
 table(dementia_data6$consults)
@@ -154,7 +154,63 @@ table(dementia_data6$LTC_cat)
 table(dementia_data6$Deceased)
 
 
+#follow-up duration
 
+#main cohort: define end of follow-up
+dementia_data2 <- dementia_data2 %>%
+  mutate(
+    end_of_followup = as.Date(pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE)),
+    end_of_followup = dplyr::if_else(end_of_followup < admidate_0, admidate_0, end_of_followup),
+    followup_days = as.numeric(end_of_followup - admidate_0)
+  )
+
+
+#create follow-up days variable
+dementia_data2 <- dementia_data2 %>%
+  mutate(
+    followup_days = as.numeric(end_of_followup - admidate_0)
+  )
+
+summary(dementia_data2$followup_days)
+
+
+
+#readmitted cohort
+dementia_data4 <- dementia_data4 %>%
+  mutate(
+    end_of_followup = as.Date(pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE)),
+    end_of_followup = dplyr::if_else(end_of_followup < admidate_0, admidate_0, end_of_followup),
+    followup_days = as.numeric(end_of_followup - admidate_0)
+  )
+
+
+#create follow-up days variable
+dementia_data4 <- dementia_data4 %>%
+  mutate(
+    followup_days = as.numeric(end_of_followup - admidate_0)
+  )
+
+summary(dementia_data4$followup_days)
+
+
+
+#non-readmitted cohort
+dementia_data6 <- dementia_data6 %>%
+  mutate(
+    end_of_followup = as.Date(pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE)),
+    end_of_followup = dplyr::if_else(end_of_followup < admidate_0, admidate_0, end_of_followup),
+    followup_days = as.numeric(end_of_followup - admidate_0)
+  )
+
+
+
+#create follow-up days variable
+dementia_data6 <- dementia_data6 %>%
+  mutate(
+    followup_days = as.numeric(end_of_followup - admidate_0)
+  )
+
+summary(dementia_data6$followup_days)
 
 
 
@@ -170,8 +226,8 @@ CrossTable(dementia_data2$Readmission, dementia_data2$gender, prop.t=FALSE, prop
 #COPD
 CrossTable(dementia_data2$Readmission, dementia_data2$COPD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 
-#CHD
-CrossTable(dementia_data2$Readmission, dementia_data2$CHD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
+#CVD
+CrossTable(dementia_data2$Readmission, dementia_data2$CVD, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
 
 #Heart failure
 CrossTable(dementia_data2$Readmission, dementia_data2$heart_failure, prop.t=FALSE, prop.chisq=FALSE, chisq=TRUE)
@@ -249,6 +305,12 @@ t.test(dementia_data2$age_at_diag ~ dementia_data2$Readmission)
 hist(dementia_data2$years_to_adm) #shows not normal distribution
 wilcox.test(dementia_data2$years_to_adm ~ dementia_data2$Readmission)
 
-#person years (continuous)
-hist(dementia_data5$person_years) #shows not normal distribution
-wilcox.test(dementia_data5$person_years ~ dementia_data5$Readmission)
+
+
+
+
+
+
+
+
+
