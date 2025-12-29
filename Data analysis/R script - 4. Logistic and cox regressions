@@ -325,7 +325,7 @@ dementia_data4 <- dementia_data4 %>%
   )
 
 
-#restrict to summary stats to the eligible subgroup
+#restrict summary stats to the eligible subgroup
 summary_stats <- dementia_data4 %>%
   filter(eligible_readmit) %>% 
   group_by(censored) %>%
@@ -507,5 +507,6 @@ print(total_person_yrs3)
 
 
 sink()
+
 
 
