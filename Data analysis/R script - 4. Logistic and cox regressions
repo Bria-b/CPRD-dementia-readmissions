@@ -8,7 +8,7 @@ sink(BB_output_file)
 multilogreg.fit <- glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults 
                        + COPD + CVD + heart_failure + CKD + T1DM + T2DM + cerebrovasc_disease + stroke_hx 
                        + depression + anxiety + insomnia + polypharmacy + antipsych_meds + med_reviews 
-                       + residential_care + e2015_imd_5 + region, data=dementia_data, family=binomial(link="logit"))
+                       + residential_care + e2015_imd_5, data=dementia_data, family=binomial(link="logit"))
 summary(multilogreg.fit)
 
 
@@ -98,7 +98,7 @@ dev.off() #resets graphics device if graphs not showing
 multilogreg2.fit<- glm(Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults
                        + COPD + CVD + heart_failure + CKD + T1DM + T2DM + cerebrovasc_disease + stroke_hx + depression
                        + anxiety + insomnia + polypharmacy + antipsych_meds + med_reviews + residential_care
-                       + e2015_imd_5 + region, data=dementia_data2, family=binomial(link="logit"))
+                       + e2015_imd_5, data=dementia_data2, family=binomial(link="logit"))
 
 summary(multilogreg2.fit)
 
@@ -510,5 +510,6 @@ print(total_person_yrs3)
 
 
 sink()
+
 
 
