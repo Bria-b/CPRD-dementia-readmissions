@@ -195,7 +195,16 @@ oddsratio(residential_care.fit)
 oddsratioci(residential_care.fit)
 
 
+#region
+region.fit <- glm(Readmission ~ region, data=dementia_data2, family=binomial)
+summary(region.fit)
+
+oddsratio(region.fit)
+oddsratioci(region.fit)
+
+
 sink()
+
 
 
 
