@@ -161,6 +161,8 @@ dementia_data$tod <- as.Date(dementia_data$tod, format = "%Y/%m/%d")
 #recode region to a factor variable
 dementia_data$region <- as.factor(dementia_data$region)
 
+dementia_data$region <- relevel(dementia_data$region, ref = "7")
+
 
 #recode bmi to a factor variable
 dementia_data$bmi_status <- as.factor(dementia_data$bmi_status)
