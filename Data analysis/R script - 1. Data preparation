@@ -71,9 +71,11 @@ dementia_data <- dementia_data %>%
   mutate(ethnicity_grouped = case_when(
     gen_ethnicity %in% c("Bl_Afric", "Bl_Carib", "Bl_Other") ~ "Black",
     gen_ethnicity %in% c("Bangladesi", "Chinese", "Indian", "Oth_Asian", "Pakistani") ~ "Asian",
+    gen_ethnicity == "Unknown" ~ "Unknown",
     TRUE ~ gen_ethnicity #keep other categories unchanged
-  )) %>%
-  filter(ethnicity_grouped != "Unknown") #remove rows with "unknown" - this is missing data.
+  )
+)
+
 
 
 
@@ -166,12 +168,8 @@ dementia_data$region <- as.factor(dementia_data$region)
 dementia_data$bmi_status <- as.factor(dementia_data$bmi_status)
 
 
-#create new dataframe for sensitivity analysis where missing bmi data is excluded
-dementia_data2 <- dementia_data
 
-
-
-#recode missing or empty cells as "Healthy weight" in bmi_status
+#recode missing or empty cells as "NA" in bmi_status
 dementia_data$bmi_status <- car::recode(dementia_data$bmi_status, "c('nan', 'None', '')='NA'")
 
 
@@ -183,17 +181,16 @@ dementia_data$bmi_status <- car::recode(dementia_data$bmi_status, "c('nan', 'Non
 
 
 #NEW DATAFRAME PREP FOR SENSITIVITY ANALYSIS
+
+#create new dataframe for sensitivity analysis where missing bmi data is excluded
+dementia_data2 <- dementia_data
+
+
 #remove bmi missing data from new dataframe
-dementia_data2 <- dementia_data2[dementia_data2$bmi_status != "", ]
+dementia_data2 <- dementia_data2[dementia_data2$bmi_status != "NA", ]
 
 
 
-#New dataframe for patients with deathdate only
-dementia_data3 <- dementia_data2
-
-
-#cohort without readmissions
-dementia_data6 <- dementia_data2[is.na(dementia_data2$admidate_1), ]
 
 
 
