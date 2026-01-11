@@ -35,9 +35,9 @@ multi_aic_both <- step(multilogreg.fit, scope=list(lower=fitted_null, upper=mult
 summary(multi_aic_both)
 
 #final model based on these (lowest AIC number: all models have same number so chose both - can choose any.)
-final_log_reg <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + consults + COPD + CVD + heart_failure 
+final_log_reg <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults + COPD + CVD + heart_failure 
                     + CKD + T1DM + T2DM + cerebrovasc_disease + stroke_hx + depression + antipsych_meds + med_reviews 
-                    + residential_care, data=dementia_data, family=binomial(link="logit")) 
+                    + residential_care + e2015_imd_5, data=dementia_data, family=binomial(link="logit")) 
 summary(final_log_reg)
 
 
@@ -93,7 +93,7 @@ dev.off() #resets graphics device if graphs not showing
 
 
 
-#MODEL 2: bmi missing data removed
+#MODEL 1a: bmi missing data removed
 
 multilogreg2.fit<- glm(Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults
                        + COPD + CVD + heart_failure + CKD + T1DM + T2DM + cerebrovasc_disease + stroke_hx + depression
@@ -112,12 +112,12 @@ print(vif_values2)
 multi_aic_back2 <- step(multilogreg2.fit, trace=0, direction="backward")
 summary(multi_aic_back2)
 
-#forward elimination
+#forward selection
 fitted_null2 <- glm(formula = Readmission ~ 1, data=dementia_data2, family=binomial(link="logit"))
 multi_aic_forward2 <- step(fitted_null2, scope=list(lower=fitted_null2, upper=multilogreg2.fit), trace=0, direction="forward")
 summary(multi_aic_forward2)
 
-#forward and backward elimination combined
+#forward and backward combined
 multi_aic_both2 <- step(multilogreg2.fit, scope=list(lower=fitted_null2, upper=multilogreg2.fit), trace=0, direction="both")
 summary(multi_aic_both2)
 
@@ -169,17 +169,18 @@ blr_roc_curve(gains_table2)
 
 
 
-#Model 2 AIC lower than model 1 AIC (34230 vs 39242) with reduced sample size in model 2
-#suggests bmi data (or its missingness) may not add predictive value for readmissions, especially as bmi wasn't retained in either final model.
-#therefore choose MODEL 2 as main model (better fit)
+
+#bmi wasn't retained in either final model, therefore choose MODEL 1 as main model
 
 
 
-#MODEL 3
-multilogreg3.fit<- glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + consults + LTC_cat 
-                       + antipsych_meds + med_reviews + residential_care, data=dementia_data2, family=binomial(link="logit"))
+#MODEL 2
+multilogreg3.fit<- glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults 
+                       + LTC_cat + polypharmacy + antipsych_meds + med_reviews 
+                       + residential_care + e2015_imd_5, data=dementia_data, family=binomial(link="logit"))
 
 summary(multilogreg3.fit)
+
 
 
 #check VIF values
@@ -193,18 +194,18 @@ print(vif_values3)
 multi_aic_back3 <- step(multilogreg3.fit, trace=0, direction="backward")
 summary(multi_aic_back3)
 
-#forward elimination
-fitted_null3 <- glm(formula = Readmission ~ 1, data=dementia_data2, family=binomial(link="logit"))
+#forward selection
+fitted_null3 <- glm(formula = Readmission ~ 1, data=dementia_data, family=binomial(link="logit"))
 multi_aic_forward3 <- step(fitted_null3, scope=list(lower=fitted_null3, upper=multilogreg3.fit), trace=0, direction="forward")
 summary(multi_aic_forward3)
 
-#forward and backward elimination combined
+#forward and backward combined
 multi_aic_both3 <- step(multilogreg3.fit, scope=list(lower=fitted_null3, upper=multilogreg3.fit), trace=0, direction="both")
 summary(multi_aic_both3)
 
 #final model based on these (lowest AIC number: all models have same number so chose both - can choose any. chose both)
 final_logreg3 <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + type + consults
-                    + LTC_cat + antipsych_meds + med_reviews + residential_care, data=dementia_data2, family=binomial(link="logit"))
+                    + LTC_cat + antipsych_meds + med_reviews + residential_care + e2015_imd_5, data=dementia_data, family=binomial(link="logit"))
 
 summary(final_logreg3)
 
@@ -234,7 +235,7 @@ blr_test_hosmer_lemeshow(final_logreg3) #generally good fit, observed outcomes n
 predicted_probs3 <- predict(final_logreg3, type = "response")
 
 #calculate the ROC curve and AUC
-roc_curve3 <- roc(dementia_data2$Readmission, predicted_probs3)
+roc_curve3 <- roc(dementia_data$Readmission, predicted_probs3)
 
 #get the AUC value
 auc_value3 <- auc(roc_curve3)
@@ -255,43 +256,43 @@ library(lubridate)
 #create a dataset containing only cases with rapid readmission to look
 #at outcomes relating to death after rapid readmission
 
-dementia_data4 <- dementia_data3[!is.na(dementia_data3$admidate_1), ]
+dementia_data3 <- dementia_data[!is.na(dementia_data$admidate_1), ]
 
 #Define end of follow up as earliest of death date (dod), tod, lcd, or study end date
-dementia_data4 <- dementia_data4 %>%
+dementia_data3 <- dementia_data3 %>%
   mutate(
     end_of_followup = as.Date(pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE))
   )
 
 #Define eligibility for readmission-death group
-dementia_data4 <- dementia_data4 %>%
+dementia_data3 <- dementia_data3 %>%
   mutate(
     eligible_readmit = !is.na(admidate_1) & admidate_1 <= end_of_followup
   )
 
 
 #define 1-year window after readmission
-dementia_data4 <- dementia_data4 %>% 
+dementia_data3 <- dementia_data3 %>% 
   mutate(
     end_1yr_readm = admidate_1 %m+% lubridate::years(1)
   )
 
 
 #define event indicator: death within 1 year of readmission
-dementia_data4 <- dementia_data4 %>% 
+dementia_data3 <- dementia_data3 %>% 
   mutate(
     died_1yr_readm = case_when(
-      eligible_readmit & 
+      !eligible_readmit ~ NA_integer_,  #not eligible i.e. end of follow up falls earlier than readmission
         !is.na(dod) & 
-        dod >= admidate_1 &
-        dod <= end_1yr_readm ~ 1,    #died within 1 yr of readm
-      eligible_readmit ~ 0,          #survived to 1 year or was censored
-      TRUE ~ NA_integer_             # not part of this subgroup
+        dod >= admidate_1 &           #Death date on or after readmission (eligible group pt1)
+        dod <= end_1yr_readm ~ 1L,    #AND died within 1 yr of readm (eligible group pt2)
+      TRUE ~ 0L,                      #Pts in this group eligible but death date not in 1yr readm window
     )
   )
 
+
 #define censoring date (excluding death, this is the event of interest)
-dementia_data4 <- dementia_data4 %>% 
+dementia_data3 <- dementia_data3 %>% 
   mutate(
     censor_date_1yr = case_when(
       eligible_readmit ~ pmin(
@@ -305,8 +306,10 @@ dementia_data4 <- dementia_data4 %>%
     )
   )
 
+
+
 #Define time-to-event variable (days)
-dementia_data4 <- dementia_data4 %>% 
+dementia_data3 <- dementia_data3 %>% 
   mutate(
     time_to_event = case_when(
       died_1yr_readm == 1 ~ as.numeric(dod - admidate_1),
@@ -318,7 +321,7 @@ dementia_data4 <- dementia_data4 %>%
 
 
 #create a censoring indicator
-dementia_data4 <- dementia_data4 %>% 
+dementia_data3 <- dementia_data3 %>% 
   mutate(
     censored = case_when(
       died_1yr_readm == 0 ~ "censored",
@@ -329,7 +332,7 @@ dementia_data4 <- dementia_data4 %>%
 
 
 #restrict summary stats to the eligible subgroup
-summary_stats <- dementia_data4 %>%
+summary_stats <- dementia_data3 %>%
   filter(eligible_readmit) %>% 
   group_by(censored) %>%
   summarise(
@@ -369,139 +372,167 @@ View(summary_stats)
 
 
 #average time to readmission
-dementia_data4 <- dementia_data4 %>%
+dementia_data3 <- dementia_data3 %>%
   mutate(time_to_readmission = as.numeric(admidate_1 - admidate_0))
 
-summary(dementia_data4$time_to_readmission)
-sd(dementia_data4$time_to_readmission, na.rm=TRUE)
+summary(dementia_data3$time_to_readmission)
+sd(dementia_data3$time_to_readmission, na.rm=TRUE)
 
 #how many readm pts died within one year
-table(dementia_data4$died_1yr_readm)
+table(dementia_data3$died_1yr_readm)
 
 
 
 #stats for time to death within 1yr readmission
-summary(dementia_data4$time_to_event)
-hist(dementia_data4$time_to_event)
-sd(dementia_data4$time_to_event, na.rm = TRUE)
+summary(dementia_data3$time_to_event)
+hist(dementia_data3$time_to_event)
+sd(dementia_data3$time_to_event, na.rm = TRUE)
 
 
 
 
-#fit cox models
+#Prep for cox regression
 library(survival)
 
 
-cox_model1 <- coxph(Surv(time_to_event, died_1yr_readm) ~ gender + AgeGrouped + ethnicity_grouped + type + consults
-                    + LTC_cat + antipsych_meds + med_reviews + residential_care,
-                    data = dementia_data4 %>% filter(eligible_readmit))
+#define eligible patients & no missing time_to_events and died_1yr_read values
+analysis_df <- dementia_data3 %>%
+  filter(eligible_readmit) %>%
+  filter(!is.na(time_to_event),
+         !is.na(died_1yr_readm)) %>%
+  filter(time_to_event >= 0)
 
 
-summary(cox_model1)
-exp(coef(cox_model1))
-
-#test for cox regression assumption
-cox.zph(cox_model1) # all variables have p>0.05 so model doesn't violate cox regression assumption
 
 
-#29% incr risk of death wthn 1 yr of readmission (p=0.007) for pts in residential care.
-#living in residential care reduce readmission risk in log reg models
-#for those in res.care and with readmission, does the association of death within 1yr differ by age group?
+table(analysis_df$died_1yr_readm) #check only 0 and 1 fields
 
-#test interaction term with residential care:AgeGrouped to see if age acts as an effect modifier for res care and mortality
-cox_model2 <- coxph(
-  Surv(time_to_event, died_1yr_readm) ~ residential_care * AgeGrouped +
-    gender + ethnicity_grouped + type + consults + LTC_cat +
-    antipsych_meds + med_reviews,
-  data = dementia_data4 %>% filter(eligible_readmit)
+
+
+#fit full cox model
+cox_full <- coxph(Surv(time_to_event, died_1yr_readm) ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults 
+                  + LTC_cat + polypharmacy + antipsych_meds + med_reviews 
+                  + residential_care + e2015_imd_5, data = analysis_df)
+
+
+summary(cox_full)
+
+
+#fit the null cox model 
+cox_null <- coxph(
+  Surv(time_to_event, died_1yr_readm) ~ 1,
+  data = analysis_df
 )
-summary(cox_model2)     #no effect, all p-values insignificant
+
+
+#stepwise selection: backwards elimination
+cox_backwards <- step(cox_full, direction = "backward", trace = 0)
+summary(cox_backwards)
+extractAIC(cox_backwards)
+
+
+#forward selection
+cox_forward <- step(cox_null, scope = list(lower = cox_null, upper = cox_full), direction = "forward", trace = 0)
+summary(cox_forward)
+extractAIC(cox_forward)
+
+
+#both directions
+cox_both <- step(cox_full, scope = list(lower = cox_null, upper = cox_full), direction = "both", trace = 0)
+summary(cox_both)
+extractAIC(cox_both)
+
+
+#fit final model (both)
+final_cox <- coxph(formula(cox_both), data = analysis_df)
+summary(final_cox)
+
+#Cox regression proportional hazards assumption
+ph_test <- cox.zph(final_cox) #test for cox regression assumption that variable HRs remain constant over time
+print(ph_test) #results: gender p=0.04, borderline PH assumption violated
 
 
 
-#stratify by age and perform cox reg without LTC_cat and with LTC_cat again to see if LTCs partially explain incr mortality risk
-# no major difference in HR and p-values, therefore res care remains an independent factor of mortality beyond age and comorbidities
-cox_model3 <- coxph(Surv(time_to_event, died_1yr_readm) ~ residential_care  + gender + ethnicity_grouped + type + consults
-                    + antipsych_meds + med_reviews + strata(AgeGrouped), data = dementia_data4 %>% filter(eligible_readmit)
-                    )
+ph_test #get global p value "does the PH assumption hold for the model overall?"
+        #global p=0.78 (evidence that model is fine overall)
 
-summary(cox_model3)
+ph <- cox.zph(final_cox)
+plot(ph, var = "gender") #plot show mil drift for gender, therefore reasonable to keep in model, no time-varying trend observed
 
 
-cox_model4 <- coxph(Surv(time_to_event, died_1yr_readm) ~ residential_care  + gender + ethnicity_grouped + type + consults
-                    + LTC_cat + antipsych_meds + med_reviews + strata(AgeGrouped), data = dementia_data4 %>% filter(eligible_readmit)
-                    )
 
-summary(cox_model4)
+
 
 
 
 #sensitivity test for informative censoring
-#ensure censoring is defined correctly
-d_sub <- dementia_data4 %>%
-  filter(eligible_readmit) %>%
+#creating censoring indicator for log reg model
+d_sub <- analysis_df %>% 
   mutate(
-    censored = factor(
-      ifelse(died_1yr_readm == 1, "Died within 1 year", "Censored")
-    )
+    censored = if_else(died_1yr_readm == 0, 1L, 0L) # 1=censored, 0=died within 1 yr
   )
 
-#apply chi-square tests
-chisq.test(table(d_sub$censored, d_sub$AgeGrouped))
-chisq.test(table(d_sub$censored, d_sub$gender))
-chisq.test(table(d_sub$censored, d_sub$ethnicity_grouped))
-chisq.test(table(d_sub$censored, d_sub$type))
-chisq.test(table(d_sub$censored, d_sub$consults))
-chisq.test(table(d_sub$censored, d_sub$LTC_cat))
-chisq.test(table(d_sub$censored, d_sub$antipsych_meds))
-chisq.test(table(d_sub$censored, d_sub$med_reviews))
-chisq.test(table(d_sub$censored, d_sub$residential_care))
+
+#fit log reg model - checks whether baseline covariates predict censoring status
+censor_full <- glm(censored ~ gender + AgeGrouped + ethnicity_grouped + type + bmi_status + consults 
+                   + LTC_cat + polypharmacy + antipsych_meds + med_reviews 
+                   + residential_care + e2015_imd_5, data = d_sub, family = binomial(link = "logit"))
+
+summary(censor_full)
+
+vif(censor_full)
 
 
 
 
 
 #Main cohort person-years
-dementia_data5 <- dementia_data2 %>%
+dementia_data <- dementia_data %>%
   mutate(
-    end_of_followup = as.Date(pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE)),           #define end of follow up as the earliest death date, transfer-out date, last collection date, or study end date (nov 2018)
-    end_of_followup = dplyr::if_else(end_of_followup < admidate_0, admidate_0, end_of_followup),   #ensure follow-up does not end before index adm. if so, reset it to index adm date
-    person_years = as.numeric(difftime(end_of_followup, admidate_0, units = "days")) / 365         #calc person-yrs from index adm to end of follow up in days
+    end_of_followup = pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE),           #define end of follow up as the earliest death date, transfer-out date, last collection date, or study end date (nov 2018)
+    end_of_followup = if_else(is.na(end_of_followup) | end_of_followup < admidate_0,
+                              admidate_0, end_of_followup),                              #ensure follow-up does not end before index adm. if so, reset it to index adm date
+    person_days = as.numeric(difftime(end_of_followup, admidate_0, units = "days"))         #calc person-yrs from index adm to end of follow up in days
   )
 
-summary(dementia_data5$person_years)
-sd(dementia_data5$person_years, na.rm = TRUE)
-total_person_yrs1 <- sum(dementia_data5$person_years, na.rm = TRUE)
-print(total_person_yrs1)
+summary(dementia_data$person_days)
+sd(dementia_data$person_days, na.rm = TRUE)
+sum(dementia_data$person_days, na.rm = TRUE)
+
 
 
 #Person-years for readmitted subset
-dementia_data4 <- dementia_data4 %>%
+readmit_df <- dementia_data3 %>%
+  filter(eligible_readmit) %>%
   mutate(
-    end_of_followup = as.Date(pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE)),
-    end_of_followup = dplyr::if_else(end_of_followup < admidate_0, admidate_0, end_of_followup),
-    person_years = as.numeric(difftime(end_of_followup, admidate_0, units = "days")) / 365
+    end_of_followup = pmin(dod, tod, lcd, as.Date("2018-11-30"), end_1yr_readm, na.rm = TRUE),  
+    end_of_followup = if_else(is.na(end_of_followup) | end_of_followup < admidate_1,
+                              admidate_1, end_of_followup),                             
+    person_days = as.numeric(difftime(end_of_followup, admidate_1, units = "days"))         
   )
 
-summary(dementia_data4$person_years)
-sd(dementia_data4$person_years, na.rm = TRUE)
-total_person_yrs2 <- sum(dementia_data4$person_years, na.rm = TRUE)
-print(total_person_yrs2)
+summary(readmit_df$person_days)
+sd(readmit_df$person_days, na.rm = TRUE)
+sum(readmit_df$person_days, na.rm = TRUE)
+
+
 
 
 #Person-years for non-readmitted subset
-dementia_data6 <- dementia_data6 %>%
+nonreadmit_df <- dementia_data %>%
+  filter(!Readmission) %>%
   mutate(
-    end_of_followup = as.Date(pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE)),
-    end_of_followup = dplyr::if_else(end_of_followup < admidate_0, admidate_0, end_of_followup),
-    person_years = as.numeric(difftime(end_of_followup, admidate_0, units = "days")) / 365
+    end_of_followup = pmin(dod, tod, lcd, as.Date("2018-11-30"), na.rm = TRUE),
+    end_of_followup = if_else(is.na(end_of_followup) | end_of_followup < admidate_0,
+                              admidate_0, end_of_followup),
+    person_days = as.numeric(difftime(end_of_followup, admidate_0, units = "days"))
   )
 
-summary(dementia_data6$person_years)
-sd(dementia_data6$person_years, na.rm = TRUE)
+summary(nonreadmit_df$person_days)
+sd(nonreadmit_df$person_days, na.rm = TRUE)
 
-total_person_yrs3 <- sum(dementia_data6$person_years, na.rm = TRUE) 
-print(total_person_yrs3)
+sum(nonreadmit_df$person_days, na.rm = TRUE) 
+
 
 
 
@@ -510,6 +541,5 @@ print(total_person_yrs3)
 
 
 sink()
-
 
 
