@@ -526,7 +526,8 @@ nonreadmit_df <- dementia_data %>%
     end_of_followup = if_else(is.na(end_of_followup) | end_of_followup < admidate_0,
                               admidate_0, end_of_followup),
     person_days = as.numeric(difftime(end_of_followup, admidate_0, units = "days"))
-  )
+  ) %>%
+  filter(person_days >= 180)
 
 summary(nonreadmit_df$person_days)
 sd(nonreadmit_df$person_days, na.rm = TRUE)
@@ -541,5 +542,6 @@ sum(nonreadmit_df$person_days, na.rm = TRUE)
 
 
 sink()
+
 
 
