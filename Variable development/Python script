@@ -287,7 +287,7 @@ all_dem_diag["diag_minus12m"] = all_dem_diag["first_dem_diag"] - timedelta(days 
 all_dem_diag = all_dem_diag[all_dem_diag.diag_minus12m >= all_dem_diag.uts].copy(deep=True)
 
 #select only cases with at least one month of data before dementia diagnosis data
-#have taken this to be cases where current registratoin date (crd) at least one year before diagnosis date
+#have taken this to be cases where current registration date (crd) at least one month before diagnosis date
 all_dem_diag = all_dem_diag[all_dem_diag.diag_minus1m >= all_dem_diag.crd].copy(deep=True)
 
 #read in HES linkage data
@@ -882,6 +882,7 @@ all_vars['LTC_cat'] = pd.cut(all_vars['LTC_count'], bins, labels=names)
 #save all_vars to a stata data file
 
 all_vars.to_stata('Z:/Bria/all_dementia_data_new_dod_2.dta')
+
 
 
 
