@@ -1,10 +1,3 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Tue Dec 30 15:27:26 2025
-
-@author: bsms9th2
-"""
-
 
 import pandas as pd
 import numpy as np
@@ -971,6 +964,7 @@ all_vars['LTC_cat'] = pd.cut(all_vars['LTC_count'], bins, labels=names)
 #save all_vars to a stata data file
 
 all_vars.to_stata('Z:/Bria/all_dementia_data_new_dod_2.dta')
+
 
 
 
