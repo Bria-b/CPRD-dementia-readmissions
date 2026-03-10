@@ -50,6 +50,89 @@ cbind(oddsratio(final_log_reg), oddsratioci(final_log_reg))
 
 
 
+
+
+#add interaction term between antipsych_meds and adm_year group to see if patterns of antipsych prescribing
+#and  readmission differ across diagnosis periods.
+
+model_interaction <- glm(
+  Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults +
+    COPD + CVD + heart_failure + CKD + T1DM + T2DM +
+    cerebrovasc_disease + stroke_hx + depression +
+    antipsych_meds * adm_yearGroup +
+    med_reviews + residential_care + e2015_imd_5,
+  data = dementia_data,
+  family = binomial(link = "logit")
+)
+
+summary(model_interaction)
+
+#compare interaction model with a model without interaction term to determine if model fit was improved
+#which would suggest antipsych prescribing patterns changed over time
+
+model_no_interaction <- glm(
+  Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults +
+    COPD + CVD + heart_failure + CKD + T1DM + T2DM +
+    cerebrovasc_disease + stroke_hx + depression +
+    antipsych_meds + adm_yearGroup +
+    med_reviews + residential_care + e2015_imd_5,
+  data = dementia_data,
+  family = binomial(link = "logit")
+)
+
+summary(model_no_interaction)
+
+
+#model comparison test
+anova(model_no_interaction, model_interaction, test="Chisq")
+
+
+
+
+#sensitivity analysis to see if primary care contact pattern changes when modelled using consultation type instead of binary variable
+SA_log_reg <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + pc_visit_group_2weeks + COPD + CVD + heart_failure 
+                    + CKD + T1DM + T2DM + cerebrovasc_disease + stroke_hx + depression + antipsych_meds + med_reviews 
+                    + residential_care + e2015_imd_5, data=dementia_data, family=binomial(link="logit")) 
+summary(SA_log_reg)
+
+cbind(oddsratio(SA_log_reg), oddsratioci(SA_log_reg))
+
+
+
+
+
+#step 2 of checking whether antipsychotic meds differs by residential status
+#run stratified log reg models: one with those in residential care, another with those not in residential care
+model_residential <- glm(
+  Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults +
+    COPD + CVD + heart_failure + CKD + T1DM + T2DM +
+    cerebrovasc_disease + stroke_hx + depression +
+    antipsych_meds + med_reviews + e2015_imd_5,
+  data = subset(dementia_data, residential_care == 1),
+  family = binomial
+)
+summary(model_residential)
+cbind(oddsratio(model_residential), oddsratioci(model_residential))
+
+
+
+model_community <- glm(
+  Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults +
+    COPD + CVD + heart_failure + CKD + T1DM + T2DM +
+    cerebrovasc_disease + stroke_hx + depression +
+    antipsych_meds + med_reviews + e2015_imd_5,
+  data = subset(dementia_data, residential_care == 0),
+  family = binomial
+)
+summary(model_community)
+cbind(oddsratio(model_community), oddsratioci(model_community))
+
+
+
+
+
+
+
 #check vif of final model
 vif_values_final <- vif(final_log_reg)
 print(vif_values_final)
@@ -213,6 +296,75 @@ summary(final_logreg3)
 
 #get OR and 95%CIs of  model
 cbind(oddsratio(final_logreg3), oddsratioci(final_logreg3))
+
+
+#add interaction term between antipsych_meds and adm_year group to see if patterns of antipsych prescribing
+#and  readmission differ across diagnosis periods.
+
+model_interaction2 <- glm(
+  Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults +
+    LTC_cat + antipsych_meds * adm_yearGroup +
+    med_reviews + residential_care + e2015_imd_5,
+  data = dementia_data,
+  family = binomial(link = "logit")
+)
+
+summary(model_interaction2)
+
+#compare interaction model with a model without interaction term to determine if model fit was improved
+#which would suggest antipsych prescribing patterns changed over time
+
+model_no_interaction2 <- glm(
+  Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults +
+    LTC_cat + antipsych_meds + adm_yearGroup +
+    med_reviews + residential_care + e2015_imd_5,
+  data = dementia_data,
+  family = binomial(link = "logit")
+)
+
+summary(model_no_interaction2)
+
+
+#model comparison test
+anova(model_no_interaction2, model_interaction2, test="Chisq")
+
+
+
+
+
+#sensitivity analysis to see if primary care contact pattern changes when modelled using consultation type instead of binary variable
+SA_log_reg2 <-glm(formula = Readmission ~ gender + AgeGrouped + ethnicity_grouped + pc_visit_group_2weeks + LTC_cat + antipsych_meds + med_reviews 
+                 + residential_care + e2015_imd_5, data=dementia_data, family=binomial(link="logit")) 
+summary(SA_log_reg2)
+
+cbind(oddsratio(SA_log_reg2), oddsratioci(SA_log_reg2))
+
+
+
+
+
+#run stratified log reg models: one with those in residential care, another with those not in residential care
+model_residential2 <- glm(
+  Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults +
+    LTC_cat + antipsych_meds + med_reviews + e2015_imd_5,
+  data = subset(dementia_data, residential_care == 1),
+  family = binomial
+)
+summary(model_residential2)
+cbind(oddsratio(model_residential2), oddsratioci(model_residential2))
+
+
+
+model_community2 <- glm(
+  Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults +
+    LTC_cat + antipsych_meds + med_reviews + e2015_imd_5,
+  data = subset(dementia_data, residential_care == 0),
+  family = binomial
+)
+summary(model_community2)
+cbind(oddsratio(model_community2), oddsratioci(model_community2))
+
+
 
 
 #check vif of final model
@@ -529,6 +681,15 @@ nonreadmit_df <- dementia_data %>%
   ) %>%
   filter(person_days >= 180)
 
+
+
+
+
+
+
+
+
+
 summary(nonreadmit_df$person_days)
 sd(nonreadmit_df$person_days, na.rm = TRUE)
 
@@ -542,6 +703,5 @@ sum(nonreadmit_df$person_days, na.rm = TRUE)
 
 
 sink()
-
 
 
