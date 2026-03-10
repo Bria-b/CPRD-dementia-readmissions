@@ -35,15 +35,37 @@ dementia_data$e_pracid <- as.factor(dementia_data$e_pracid)
 #gp imd to remain a numeric/continuous variable
 
 
+#make sure index_adm_year group is a factor variable
+dementia_data$adm_yearGroup <- factor(dementia_data$adm_yearGroup)
+
+
 #group index_adm_year into intervals
 dementia_data$adm_yearGroup <- cut(dementia_data$index_adm_year, breaks = c(1997, 2007, 2019), right=FALSE)
 levels(dementia_data$adm_yearGroup) <- c("1997-2006", "2007-2018")
 
 
+#group index_adm_year into 5-year intervals
+dementia_data$adm_yearGroup <- cut(
+  dementia_data$index_adm_year,
+  breaks = c(1997, 2002, 2007, 2012, 2017, 2019),
+  right = FALSE
+)
 
-#group dementia diagnosis year into 2-yearly groups
-#define break points from 1997 to 2020 in 2 yearly intervals
-breaks <- seq(1997, 2020, by = 2)
+levels(dementia_data$adm_yearGroup) <- c(
+  "1997-2001",
+  "2002-2006",
+  "2007-2011",
+  "2012-2016",
+  "2017-2018"
+)
+
+#make earliest year group the reference
+dementia_data$adm_yearGroup <- relevel(dementia_data$adm_yearGroup, ref = "1997-2001")
+
+
+#group dementia diagnosis year into 5-yearly groups
+#define break points from 1997 to 2020 in 5 yearly intervals
+breaks <- seq(1997, 2020, by = 5)
 
 #generate labels corresponding to the intervals
 labels <- paste(breaks[-length(breaks)], breaks[-1] - 1, sep = "-")
@@ -57,10 +79,13 @@ dementia_data$diag_yearGroup <- cut(
   labels = labels
 )
 
+#make sure diag_yearGroup is a factor variable
+dementia_data$diag_yearGroup <- factor(dementia_data$diag_yearGroup)
+
+#set earliest diag year period as the reference
+dementia_data$diag_yearGroup <- relevel(dementia_data$diag_yearGroup, ref = "1997-2001")
 
 
-
-#leave years_to_admin as a numeric/continuous variable
 
 
 
@@ -90,6 +115,15 @@ dementia_data$ethnicity_grouped <- relevel(dementia_data$ethnicity_grouped, ref 
 
 #recode consults to a factor variable
 dementia_data$consults <- as.factor(dementia_data$consults)
+
+
+#recode primary care consultation  types to a factor variable
+dementia_data$pc_visit_group_2weeks <- as.factor(dementia_data$pc_visit_group_2weeks)
+
+
+#make 'no visit' the reference category
+dementia_data$pc_visit_group_2weeks <- relevel(dementia_data$pc_visit_group_2weeks, ref = "no visit")
+
 
 
 #recode LTCs and other covariates to factor variables:
@@ -193,8 +227,8 @@ dementia_data2 <- dementia_data2[dementia_data2$bmi_status != "NA", ]
 
 
 
-
-
+#create dataframe for no-readmitted group for descriptive stats
+dementia_data4 <- dementia_data[dementia_data$Readmission == FALSE, ]
 
 
 
