@@ -228,6 +228,21 @@ CrossTable(dementia_data$Readmission, dementia_data$e2015_imd_5, prop.t=FALSE, p
 
 
 
+#step 1 to see if antipsychotic meds differs by residential status
+table(dementia_data$antipsych_meds, dementia_data$residential_care)    #create contingency table
+chisq.test(dementia_data$antipsych_meds, dementia_data$residential_care)  #run chi2 test
+prop.table(table(dementia_data$antipsych_meds, dementia_data$residential_care), margin = 2)   #get table of proportions
+
+
+
+
+
+
+
+
+
+
+
 #age(continuous)
 hist(dementia_data$index_adm_age) #shows normal distribution
 t.test(dementia_data$index_adm_age ~ dementia_data$Readmission)
@@ -238,5 +253,10 @@ wilcox.test(dementia_data$years_to_adm ~ dementia_data$Readmission)
 
 
 sink()
+
+
+
+
+
 
 
