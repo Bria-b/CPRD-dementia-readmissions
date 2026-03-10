@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Dec 30 15:27:26 2025
+
+@author: bsms9th2
+"""
+
 
 import pandas as pd
 import numpy as np
@@ -287,7 +294,7 @@ all_dem_diag["diag_minus12m"] = all_dem_diag["first_dem_diag"] - timedelta(days 
 all_dem_diag = all_dem_diag[all_dem_diag.diag_minus12m >= all_dem_diag.uts].copy(deep=True)
 
 #select only cases with at least one month of data before dementia diagnosis data
-#have taken this to be cases where current registration date (crd) at least one month before diagnosis date
+#have taken this to be cases where current registratoin date (crd) at least one year before diagnosis date
 all_dem_diag = all_dem_diag[all_dem_diag.diag_minus1m >= all_dem_diag.crd].copy(deep=True)
 
 #read in HES linkage data
@@ -580,7 +587,7 @@ consultation_merged = pd.concat(consultation_list, axis=0)
 consult_dem = select_DEM(consultation_merged) 
 
 #filter list of relevant consultation types
-conslist = [1,2,3,4,6,7,9,10,21,27,28,29,30,31,32,33,34,35,36,37,40,41,42,50,55,61] 
+conslist = [1,2,3,4,6,7,9,11,18,21,27,30,31,32,35,36,37,40,50,55,61] 
 
 #select rows with relevant consultation types
 consult_dem = consult_dem[consult_dem.constype.isin(conslist)]
@@ -597,9 +604,7 @@ consult_2weeks_rev = consult_dem[
      ((consult_dem.eventdate <= consult_dem.tod +timedelta(days=14)) &
       (consult_dem.eventdate >= consult_dem.tod))
      )
-    ]
-
-
+    ].copy()
 
 
 consult_2weeks_rev[['e_patid', 'eventdate', 'discharged_0', 'tod']].head(10)
@@ -608,6 +613,89 @@ consult_2weeks_rev[['e_patid', 'eventdate', 'discharged_0', 'tod']].head(10)
 unique_pt_consults = consult_2weeks_rev['e_patid'].nunique()
 #get the set of patient ids with a consultation in the 2 weeks after discharge
 consult_ids  = set(consult_2weeks_rev['e_patid'])
+
+
+#define consultation code groups (routine visit vs acute visit)
+
+routine_codes = [1,3,9,21,27,30,31,32,40,61]
+acute_codes = [2,4,6,7,11,18,35,36,37,50]
+
+consult_2weeks_rev["visit_group"] = np.select(
+    [
+     consult_2weeks_rev["constype"].isin(routine_codes),
+     consult_2weeks_rev["constype"].isin(acute_codes)
+     ],
+    [
+     "routine visit",
+     "acute visit"
+     ],
+    default=np.nan
+    )
+
+
+
+#keep only consultations that are classed as rountine or acute (others will be coded as 'no visit' later)
+classified_visits = consult_2weeks_rev[
+    consult_2weeks_rev["visit_group"].notna()
+].copy()
+
+#quick check of rows
+print(classified_visits[["e_patid", "eventdate","constype", "visit_group"]].head(10))
+
+
+
+#identify the earliest consultation within 2wks of discharge
+#Sort by patient ID and consultation date, then take the first row per patient.
+#This gives one patient-level record representing the earliest routine/acute consultation within the 2-week window.(some may have more than one appt in a day)
+
+patient_visit_group = (
+    classified_visits
+    .sort_values(["e_patid", "eventdate"])
+    .groupby("e_patid", as_index=False)
+    .first()[["e_patid", "eventdate", "constype", "visit_group"]]
+    )
+
+
+#rename variables before merging so they don't clash with existing columns
+patient_visit_group = patient_visit_group.rename(columns={
+    "eventdate": "pc_visit_date_2weeks",
+    "constype": "pc_constype_2weeks",
+    "visit_group": "pc_visit_group_2weeks"
+    })
+
+#quick check
+print(patient_visit_group.head(10))
+
+
+
+#merge back to full cohort
+all_dem_diag = all_dem_diag.copy()
+
+all_dem_diag = all_dem_diag.merge(
+    patient_visit_group,
+    on="e_patid",
+    how="left"
+    )
+
+print(all_dem_diag.head(10))
+
+#assign 'no visit' where no routine/acute visit was found
+all_dem_diag["pc_visit_group_2weeks"] = all_dem_diag["pc_visit_group_2weeks"].fillna("no visit")
+
+
+
+#quick check of numbers of visits in each group
+print(all_dem_diag["pc_visit_group_2weeks"].value_counts(dropna=False))
+
+
+#quick check of rows
+print(
+    all_dem_diag[
+        ["e_patid", "pc_visit_date_2weeks", "pc_constype_2weeks",
+         "pc_visit_group_2weeks"]
+    ].head(10)
+)
+
 
 
 
@@ -857,6 +945,7 @@ all_vars = all_dem_diag
  
 
 all_vars['consults'] = all_vars.e_patid.isin(consult_ids).astype(int)
+
 all_vars['COPD'] = all_vars.e_patid.isin(COPD_ids).astype(int)
 all_vars['CVD'] = all_vars.e_patid.isin(CVD_ids).astype(int)
 all_vars['heart_failure'] = all_vars.e_patid.isin(heart_failure_ids).astype(int)
@@ -882,7 +971,6 @@ all_vars['LTC_cat'] = pd.cut(all_vars['LTC_count'], bins, labels=names)
 #save all_vars to a stata data file
 
 all_vars.to_stata('Z:/Bria/all_dementia_data_new_dod_2.dta')
-
 
 
 
