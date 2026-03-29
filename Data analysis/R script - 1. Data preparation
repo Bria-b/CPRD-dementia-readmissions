@@ -35,13 +35,14 @@ dementia_data$e_pracid <- as.factor(dementia_data$e_pracid)
 #gp imd to remain a numeric/continuous variable
 
 
-#make sure index_adm_year group is a factor variable
-dementia_data$adm_yearGroup <- factor(dementia_data$adm_yearGroup)
 
 
 #group index_adm_year into intervals
 dementia_data$adm_yearGroup <- cut(dementia_data$index_adm_year, breaks = c(1997, 2007, 2019), right=FALSE)
 levels(dementia_data$adm_yearGroup) <- c("1997-2006", "2007-2018")
+
+#make sure index_adm_year group is a factor variable
+dementia_data$adm_yearGroup <- factor(dementia_data$adm_yearGroup)
 
 
 #group index_adm_year into 5-year intervals
@@ -84,6 +85,11 @@ dementia_data$diag_yearGroup <- factor(dementia_data$diag_yearGroup)
 
 #set earliest diag year period as the reference
 dementia_data$diag_yearGroup <- relevel(dementia_data$diag_yearGroup, ref = "1997-2001")
+
+
+# Create 2009+ indicator
+dementia_data$dx_2009_onwards <- ifelse(dementia_data$diag_year >= 2009, 1, 0)
+
 
 
 
