@@ -132,6 +132,19 @@ cbind(oddsratio(model_community), oddsratioci(model_community))
 
 
 
+#logistic reg with interaction to see if antipscyh meds odds changed for pts diagnosed from 2009 onwards
+sens_model <- glm(Readmission ~ gender + AgeGrouped + ethnicity_grouped + consults + COPD + CVD + heart_failure 
+                  + CKD + T1DM + T2DM + cerebrovasc_disease + stroke_hx + depression + antipsych_meds 
+                  + dx_2009_onwards + antipsych_meds:dx_2009_onwards
+                  + med_reviews + residential_care + e2015_imd_5,
+                  data = dementia_data, family = binomial)
+
+summary(sens_model)
+cbind(oddsratio(sens_model), oddsratioci(sens_model))
+
+
+
+
 
 #check vif of final model
 vif_values_final <- vif(final_log_reg)
