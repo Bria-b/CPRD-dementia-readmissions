@@ -1,3 +1,10 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Tue Dec 30 15:27:26 2025
+
+@author: bsms9th2
+"""
+
 
 import pandas as pd
 import numpy as np
@@ -851,6 +858,77 @@ polypharm_max1_ids = set(polypharm_max1['e_patid'])
  
 
 
+
+
+#TO GET VARIABLE FOR % OF PATIENTS WITH POLYPHARMACY WITHIN A YEAR BEFORE INDEX ADMISSION
+# Recreate source dataset without altering original polypharmacy variable
+polypharmacy_1yr_check = select_DEM(therapy_merged)
+
+polypharmacy_1yr_check = polypharmacy_1yr_check[['e_patid', 'eventdate', 'bnfcode']]
+
+polypharm_all_1yr_check = pd.merge(
+    polypharmacy_1yr_check,
+    all_dem_diag[['e_patid', 'admidate_0']],
+    how='left',
+    on='e_patid'
+).copy(deep=True)
+
+# Ensure date formats
+polypharm_all_1yr_check['eventdate'] = pd.to_datetime(polypharm_all_1yr_check['eventdate'])
+polypharm_all_1yr_check['admidate_0'] = pd.to_datetime(polypharm_all_1yr_check['admidate_0'])
+
+# Create date 1 year before index admission
+polypharm_all_1yr_check['admidate_minus1yr'] = (
+    polypharm_all_1yr_check['admidate_0'] - pd.Timedelta(days=365)
+)
+
+# Restrict to prescriptions in the year before index admission
+polypharm_all_1yr_check = polypharm_all_1yr_check[
+    (polypharm_all_1yr_check['eventdate'] >= polypharm_all_1yr_check['admidate_minus1yr']) &
+    (polypharm_all_1yr_check['eventdate'] < polypharm_all_1yr_check['admidate_0'])
+]
+
+# Sort
+polypharm_all_1yr_check = sort_id_date_clin(polypharm_all_1yr_check)
+
+# Rolling 90-day count of distinct BNF codes
+polypharm_all_1yr_check = polypharm_all_1yr_check.set_index('eventdate')
+
+polypharm_final_1yr_check = (
+    polypharm_all_1yr_check
+    .groupby('e_patid')['bnfcode']
+    .rolling("90D")
+    .apply(lambda x: np.unique(x).size, raw=True)
+    .reset_index(name='num_meds')
+    .drop_duplicates(['e_patid', 'eventdate'], keep='last')
+)
+
+# Maximum number of distinct medicines within any 90-day window during the year before admission
+polypharm_max_1yr_check = (
+    polypharm_final_1yr_check
+    .groupby('e_patid')
+    .max('num_meds')
+    .reset_index()
+)
+
+# Flag patients meeting polypharmacy definition within year before index admission
+polypharm_max_1yr_check['polypharm_1yr_check'] = np.where(
+    polypharm_max_1yr_check['num_meds'] > 4,
+    1,
+    0
+)
+
+polypharm_1yr_check_ids = set(
+    polypharm_max_1yr_check.loc[
+        polypharm_max_1yr_check['polypharm_1yr_check'] == 1,
+        'e_patid'
+    ]
+)
+
+
+
+
+
      
 
 #ANTIPSYCHOTIC MEDICATION - any 2 or more antipsychotic medication prescriptions within 1-year period between diag_minus1m and index adm date
@@ -881,6 +959,72 @@ antipsych_total_max['ap_total_max'] = np.where(antipsych_total_max['num_antipsyc
 
 antipsych_total_max1 = antipsych_total_max[antipsych_total_max['ap_total_max'] == 1]
 antipsych_total_max1_ids = set(antipsych_total_max1['e_patid'])
+
+
+
+
+#TO GET VARIABLE TO DETERMINE % OF PATIENTS WITH ANTIPSYCH MEDS WITHIN A YEAR BEFORE INDEX ADMISSION
+# Recreate antipsychotic prescription dataset without altering original variable
+antipsych_meds_1yr_check = select_DEM(
+    therapy_merged[therapy_merged.prodcode.isin(antipsych_codes)].copy(deep=True)
+)[['e_patid', 'prodcode', 'eventdate']]
+
+antipsych_all_1yr_check = pd.merge(
+    antipsych_meds_1yr_check,
+    all_dem_diag[['e_patid', 'admidate_0']],
+    how='left',
+    on='e_patid'
+).copy(deep=True)
+
+# Ensure date formats
+antipsych_all_1yr_check['eventdate'] = pd.to_datetime(
+    antipsych_all_1yr_check['eventdate']
+)
+
+antipsych_all_1yr_check['admidate_0'] = pd.to_datetime(
+    antipsych_all_1yr_check['admidate_0']
+)
+
+# Create 1-year lookback date
+antipsych_all_1yr_check['admidate_minus1yr'] = (
+    antipsych_all_1yr_check['admidate_0'] - pd.Timedelta(days=365)
+)
+
+# Restrict to antipsychotic prescriptions in the year before index admission
+antipsych_all_1yr_check = antipsych_all_1yr_check[
+    (antipsych_all_1yr_check['eventdate'] >= antipsych_all_1yr_check['admidate_minus1yr']) &
+    (antipsych_all_1yr_check['eventdate'] < antipsych_all_1yr_check['admidate_0'])
+]
+
+# Sort by patient and date
+antipsych_all_1yr_check.sort_values(
+    ['e_patid', 'eventdate'],
+    inplace=True
+)
+
+# Count number of antipsychotic prescriptions in the year before index admission
+antipsych_1yr_check = (
+    antipsych_all_1yr_check
+    .groupby('e_patid')
+    .size()
+    .reset_index(name='num_antipsych_1yr')
+)
+
+# Flag patients with 2 or more antipsychotic prescriptions within year before index admission
+antipsych_1yr_check['antipsych_1yr_check'] = np.where(
+    antipsych_1yr_check['num_antipsych_1yr'] >= 2,
+    1,
+    0
+)
+
+antipsych_1yr_check_ids = set(
+    antipsych_1yr_check.loc[
+        antipsych_1yr_check['antipsych_1yr_check'] == 1,
+        'e_patid'
+    ]
+)
+
+
 
 
 
@@ -951,7 +1095,9 @@ all_vars['depression'] = all_vars.e_patid.isin(depression_ids).astype(int)
 all_vars['anxiety'] = all_vars.e_patid.isin(anxiety_ids).astype(int)
 all_vars['insomnia'] = all_vars.e_patid.isin(insomnia_ids).astype(int)
 all_vars['polypharmacy'] = all_vars.e_patid.isin(polypharm_max1_ids).astype(int)
+all_vars['polypharmacy_1yr_adm'] = all_vars.e_patid.isin(polypharm_1yr_check_ids).astype(int)
 all_vars['antipsych_meds'] = all_vars.e_patid.isin(antipsych_total_max1_ids).astype(int)
+all_vars['antipsych_meds_1yr_adm'] = all_vars.e_patid.isin(antipsych_1yr_check_ids).astype(int)
 all_vars['med_reviews'] = all_vars.e_patid.isin(medreviews_all_ids).astype(int)
 all_vars['residential_care'] = all_vars.e_patid.isin(residential_ids).astype(int)
 all_vars['LTC_count'] = all_vars.COPD + all_vars.CVD + all_vars.heart_failure + all_vars.CKD + all_vars.T1DM + all_vars.T2DM + all_vars.stroke_hx + all_vars.cerebrovasc_disease + all_vars.depression  + all_vars.anxiety + all_vars.insomnia
@@ -964,7 +1110,6 @@ all_vars['LTC_cat'] = pd.cut(all_vars['LTC_count'], bins, labels=names)
 #save all_vars to a stata data file
 
 all_vars.to_stata('Z:/Bria/all_dementia_data_new_dod_2.dta')
-
 
 
 
