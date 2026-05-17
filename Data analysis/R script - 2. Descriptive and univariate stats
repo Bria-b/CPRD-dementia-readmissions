@@ -103,6 +103,32 @@ sd(dementia_data3$index_adm_age, na.rm=TRUE)
 
 
 
+#percentage of patients with polypharmacy within a year before index admission = 89.5%
+dementia_data %>%
+  filter(polypharmacy == 1) %>%
+  summarise(
+    n_original_poly = n(),
+    n_poly_1yr = sum(polypharmacy_1yr_adm),
+    percent_poly_1yr =
+      round(mean(polypharmacy_1yr_adm) * 100, 1)
+  )
+
+
+
+#percentage of patients with antipsych meds within a year before index admission = 86.5%
+dementia_data %>%
+  filter(antipsych_meds == 1) %>%
+  summarise(
+    n_original_antipsych = n(),
+    n_antipsych_1yr = sum(antipsych_meds_1yr_adm),
+    percent_antipsych_1yr =
+      round(mean(antipsych_meds_1yr_adm) * 100, 1)
+  )
+
+
+
+
+
 
 
 
